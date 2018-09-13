@@ -1,5 +1,4 @@
-# rcpm
-Random ChangePoint Models
+# rcpm - Random ChangePoint Models
 
 This R package proposes different functions to make inference on a random changepoint framework for longitudinal data. The work is still in progress and the package is not yet fully functional. Already implemented or being implemented are :
 * testRCPMM: a test for the existence of a random changepoint for longitudinal data
