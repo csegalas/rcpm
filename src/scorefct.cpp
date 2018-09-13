@@ -267,8 +267,7 @@ double lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, Num
         arma::mat Vk = arma::zeros<arma::mat>(lgt,lgt);
         for (int k = 0; k < nq; ++k){
           Zk.col(2) = pow(pow(timeNoNA - arma::ones<arma::colvec>(lgt)*(tau+param(15)*adjusti+Utau*nodes(k)),2)+0.1,0.5);
-          muk = Zk * Betas;
-          Vk = (Zk * B) * trans(Zk) + pow(sigma,2) * arma::eye<arma::mat>(lgt,lgt); 
+          muk = Zk * Betas;  Vk = (Zk * B) * trans(Zk) + pow(sigma,2) * arma::eye<arma::mat>(lgt,lgt); 
           double f = dmvnrmarma1d(trans(scoreNoNA),trans(muk),Vk);
           res = res + (f * weights(k));
         }
@@ -281,23 +280,32 @@ double lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, Num
 
 // [[Rcpp::depends("RcppArmadillo")]]
 // [[Rcpp::export]]
-double bilvsblNC(NumericVector param, List data, int nq, bool adapt, NumericVector grp, NumericVector weights, NumericMatrix nodes, String scorevar1, String scorevar2, String timevar, String covariate, String REadjust){
+double bilvsblNC(NumericVector param, List data, int nq, bool adapt, NumericVector grp, NumericVector weights, NumericMatrix nodes, List newnodes, List newweights, String scorevar1, String scorevar2, String timevar, String covariate, String REadjust){
   double Beta0_1=param(0); double Beta1_1=param(1); double Beta2_1=param(2);
   double tau_1=param(3); double Utau_1=param(11); double sigma_1=param(4);
   
   double Beta0_2=param(12); double Beta1_2=param(13); double Beta2_2=param(14);
   double tau_2=param(15); double Utau_2=param(23); double sigma_2=param(16);
 
-  if (adapt == TRUE){
-    NumericMatrix nnodes(pow(nq,2),2);
+  // non adaptive
+ arma::mat nnodes(pow(nq,2),2);
+ NumericVector nweights(pow(nq,2));
+  if (adapt == FALSE){
     for (int i = 0; i<pow(nq,2); i++){
-      nnodes(i,0) = pow(2,0.5)*(nodes(i,0) * Utau_1 + nodes(i,1) * param(24));
-      nnodes(i,1) = pow(2,0.5)*(nodes(i,1) * Utau_2);
-      weights(i) = weights(i);
+      nnodes(i,0) = nodes(i,0) * Utau_1 + nodes(i,1) * param(24);
+      nnodes(i,1) = nodes(i,1) * Utau_2;
+      nweights = weights;
     }
   }
-
   
+  // adaptative
+  arma::rowvec mure(2); arma::mat Bre(2,2);
+  if (adapt == TRUE){
+    arma::mat Ure(2,2);
+    Ure(0,0) = Utau_1; Ure(1,1) = Utau_2; Ure(0,1) = param(24); Bre = trans(Ure) * Ure;
+    mure = arma::zeros<arma::rowvec>(2);
+  }
+
   int N = max(grp);
   double out = 0;
   for (int i = 0; i<N; i++){
@@ -323,6 +331,7 @@ double bilvsblNC(NumericVector param, List data, int nq, bool adapt, NumericVect
       arma::mat B = arma::zeros<arma::mat>(6,6);
       
       if (covariate == "NULL"){
+
         U(0,0) = param(5); U(0,1) = param(6); U(0,2)=param(7); U(1,1)=param(8); U(1,2)=param(9); U(2,2)=param(10);
         U(3,3) = param(17); U(3,4) = param(18); U(3,5) = param(19); U(4,4) = param(20); U(4,5) = param(21); U(5,5) = param(22);
         U(0,3) = param(25); U(0,4) = param(26); U(0,5) = param(27); U(1,3)=param(28); U(1,4)=param(29); U(1,5) = param(30);
@@ -345,14 +354,21 @@ double bilvsblNC(NumericVector param, List data, int nq, bool adapt, NumericVect
         arma::mat Sigma2 = pow(sigma_2,2) * arma::eye<arma::mat>(lgt2,lgt2);
         arma::mat Sigma0 = arma::zeros<arma::mat>(lgt1,lgt2);
         arma::mat Sigma = join_cols(join_rows(Sigma1,Sigma0), join_rows(trans(Sigma0),Sigma2));
+        arma::vec qre = arma::ones<arma::vec>(pow(nq,2));
+        
+        if (adapt == TRUE){
+          arma::mat nnodes = as<arma::mat>(newnodes[i]);
+          nweights = as<NumericVector>(newweights[i]);
+          qre = dmvnrmarma(nnodes, mure, Bre);
+        }
         
         for (int k = 0; k < pow(nq,2); ++k){
-          Zk1.col(2) = pow(pow(timeNoNA1 - arma::ones<arma::colvec>(lgt1)*(tau_1+nnodes(k,0)),2)+0.1,0.5); // correlation directly taken into account when creating nnodes
+          Zk1.col(2) = pow(pow(timeNoNA1 - arma::ones<arma::colvec>(lgt1)*(tau_1+nnodes(k,0)),2)+0.1,0.5);
           Zk2.col(2) = pow(pow(timeNoNA2 - arma::ones<arma::colvec>(lgt2)*(tau_2+nnodes(k,1)),2)+0.1,0.5);
           Zk = join_cols(join_rows(Zk1,Zk01),join_rows(Zk02,Zk2));
-          muk = Zk * Betas; Vk = (Zk * B) * trans(Zk) + Sigma; 
+          muk = Zk * Betas; Vk = (Zk * B) * trans(Zk) + Sigma;
           double f = dmvnrmarma1d(trans(scoreNoNA),trans(muk),Vk);
-          res = res + (f * weights(k));
+          res = res + (f * qre(k) * nweights(k));
         }
         out = out + log(res);
       }

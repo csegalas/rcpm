@@ -136,23 +136,26 @@ BEGIN_RCPP
 END_RCPP
 }
 // bilvsblNC
-double bilvsblNC(NumericVector param, List data, int nq, NumericVector grp, NumericVector weights, NumericMatrix nodes, String scorevar1, String scorevar2, String timevar, String covariate, String REadjust);
-RcppExport SEXP _rcpm_bilvsblNC(SEXP paramSEXP, SEXP dataSEXP, SEXP nqSEXP, SEXP grpSEXP, SEXP weightsSEXP, SEXP nodesSEXP, SEXP scorevar1SEXP, SEXP scorevar2SEXP, SEXP timevarSEXP, SEXP covariateSEXP, SEXP REadjustSEXP) {
+double bilvsblNC(NumericVector param, List data, int nq, bool adapt, NumericVector grp, NumericVector weights, NumericMatrix nodes, List newnodes, List newweights, String scorevar1, String scorevar2, String timevar, String covariate, String REadjust);
+RcppExport SEXP _rcpm_bilvsblNC(SEXP paramSEXP, SEXP dataSEXP, SEXP nqSEXP, SEXP adaptSEXP, SEXP grpSEXP, SEXP weightsSEXP, SEXP nodesSEXP, SEXP newnodesSEXP, SEXP newweightsSEXP, SEXP scorevar1SEXP, SEXP scorevar2SEXP, SEXP timevarSEXP, SEXP covariateSEXP, SEXP REadjustSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< NumericVector >::type param(paramSEXP);
     Rcpp::traits::input_parameter< List >::type data(dataSEXP);
     Rcpp::traits::input_parameter< int >::type nq(nqSEXP);
+    Rcpp::traits::input_parameter< bool >::type adapt(adaptSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type grp(grpSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type weights(weightsSEXP);
     Rcpp::traits::input_parameter< NumericMatrix >::type nodes(nodesSEXP);
+    Rcpp::traits::input_parameter< List >::type newnodes(newnodesSEXP);
+    Rcpp::traits::input_parameter< List >::type newweights(newweightsSEXP);
     Rcpp::traits::input_parameter< String >::type scorevar1(scorevar1SEXP);
     Rcpp::traits::input_parameter< String >::type scorevar2(scorevar2SEXP);
     Rcpp::traits::input_parameter< String >::type timevar(timevarSEXP);
     Rcpp::traits::input_parameter< String >::type covariate(covariateSEXP);
     Rcpp::traits::input_parameter< String >::type REadjust(REadjustSEXP);
-    rcpp_result_gen = Rcpp::wrap(bilvsblNC(param, data, nq, grp, weights, nodes, scorevar1, scorevar2, timevar, covariate, REadjust));
+    rcpp_result_gen = Rcpp::wrap(bilvsblNC(param, data, nq, adapt, grp, weights, nodes, newnodes, newweights, scorevar1, scorevar2, timevar, covariate, REadjust));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -167,7 +170,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_rcpm_dmvnrmarma1d", (DL_FUNC) &_rcpm_dmvnrmarma1d, 4},
     {"_rcpm_ScoreInd", (DL_FUNC) &_rcpm_ScoreInd, 15},
     {"_rcpm_lvsblNCgen", (DL_FUNC) &_rcpm_lvsblNCgen, 10},
-    {"_rcpm_bilvsblNC", (DL_FUNC) &_rcpm_bilvsblNC, 11},
+    {"_rcpm_bilvsblNC", (DL_FUNC) &_rcpm_bilvsblNC, 14},
     {NULL, NULL, 0}
 };
 

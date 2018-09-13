@@ -37,7 +37,7 @@ lvsblNCgen <- function(param, data, nq, grp, weights, nodes, scorevar, timevar, 
     .Call('_rcpm_lvsblNCgen', PACKAGE = 'rcpm', param, data, nq, grp, weights, nodes, scorevar, timevar, covariate, REadjust)
 }
 
-bilvsblNC <- function(param, data, nq, grp, weights, nodes, scorevar1, scorevar2, timevar, covariate, REadjust) {
-    .Call('_rcpm_bilvsblNC', PACKAGE = 'rcpm', param, data, nq, grp, weights, nodes, scorevar1, scorevar2, timevar, covariate, REadjust)
+bilvsblNC <- function(param, data, nq, adapt, grp, weights, nodes, newnodes, newweights, scorevar1, scorevar2, timevar, covariate, REadjust) {
+    .Call('_rcpm_bilvsblNC', PACKAGE = 'rcpm', param, data, nq, adapt, grp, weights, nodes, newnodes, newweights, scorevar1, scorevar2, timevar, covariate, REadjust)
 }
 
