@@ -7,3 +7,6 @@ src/*.so
 src/*.dll
 data/*
 data-raw/*
+*.tar.gz
+*.csv
+.gitignore
