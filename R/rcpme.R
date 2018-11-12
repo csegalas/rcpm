@@ -240,8 +240,21 @@ bircpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma 
   # errors handling
   if (covariate == "NULL" & REadjust != "no") stop("Need a covariate to adjust random effects variance structure.")
   if (covariate != "NULL" | REadjust != "no") stop("It has not been implemented yet. Sorry for the inconvenience.")
-  # if (adapt == TRUE) stop("Adaptive gaussian quadrature not yet implemented")
-  
+  if (!is.null(param)){
+    if (length(param) != 34){ stop("Initial parameters vector must be a vector of size 34.")}
+    B <- matrix(c(param[c(6,7,8)], 0, param[c(26,27,28)], 0, 
+                  param[c(7,9,10)], 0, param[c(29,30,31)], 0, 
+                  param[c(8,10,11)], 0, param[c(32,33,34)], 0, 
+                  rep(0,3), param[12], rep(0,3), param[25],
+                  param[c(26,29,32)], 0, param[c(18,19,20)], 0,
+                  param[c(27,30,33)], 0, param[c(19,21,22)], 0,
+                  param[c(28,31,34)], 0, param[c(20,22,23)], 0,
+                  rep(0,3), param[25], rep(0,3), param[24]), byrow = TRUE, nrow = 8)
+    if (class(try(chol(B), silent = TRUE)) == "try-error") stop("Input parameters doesn't definite a positive definite covariance matrix. You may remove the input param option so that the algorithm will automatically chose initial parameters.")
+    param <- VarToChol(param);
+    remove(B)
+  }
+
   # data handling
   scorevar1 = longdata[,all.vars(formu)[1]]
   scorevar2 = longdata[,all.vars(formu)[2]]
@@ -257,11 +270,7 @@ bircpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma 
   rcpmeObj2 <- rcpme(longdata, as.formula(paste(all.vars(formu)[2], "~", all.vars(formu)[3], "|", all.vars(formu)[4])), covariate = covariate, REadjust = REadjust, gamma = gamma, nbnodes = 20)
   
   if (is.null(param)){
-    param <- as.numeric(c(rcpmeObj1$optpar, rcpmeObj2$optpar, rep(0,10)))
-  }
-  
-  if (length(param) != 34){
-    stop("Initial parameters vector must be a vector of size 34.")
+    param <- as.numeric(c(rcpmeObj1$optpar, rcpmeObj2$optpar, rep(0,10))) # en sortie de rcpme j'ai les params de Chol pour le moment donc j'y touche pas
   }
   
   # nodes and weights
@@ -278,11 +287,7 @@ bircpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma 
   # adaptive
   if (adapt == TRUE){
     RE1 <- REestimate(rcpmeObj1, longdata, var = TRUE, onlytau = TRUE); RE2 <- REestimate(rcpmeObj2, longdata, var = TRUE, onlytau = TRUE);
-    # RE1 <- REestimate(rcpmeObj1, longdata, var = TRUE); RE2 <- REestimate(rcpmeObj2, longdata, var = TRUE);
-    # RE1 <- lapply(RE1, function(x){return(if (min(diag(x$var))<0) list("par"= c(0,0,0,0), "var" = diag(4)/2) else x)})
-    # RE2 <- lapply(RE1, function(x){return(if (min(diag(x$var))<0) list("par"= c(0,0,0,0), "var" = diag(4)/2) else x)})
     REs <- lapply(mapply(FUN = function(a,b){return(list(c(a$par, b$par, a$var, b$var)))}, RE1, RE2), function(x){return(list("par"=x[c(1,2)], "var"=matrix(c(sqrt(x[3]),0,0,sqrt(x[4])), byrow=TRUE, nrow=2)))})
-    # REs <- lapply(mapply(FUN = function(a,b){return(list(c(a$par[4], b$par[4], a$var[4,4], b$var[4,4])))}, RE1, RE2), function(x){return(list("par"=x[c(1,2)], "var"=matrix(c(sqrt(x[3]),0,0,sqrt(x[4])), byrow=TRUE, nrow=2)))})
     newnodes <- mapply(function(a){return(list(t(apply(nodes,1,function(x){return(sqrt(2)*a[[2]]%*%x+a[[1]])}))))},REs)
     newweights <- lapply(REs,function(a){return(weights*2*det(a[[2]])*apply(nodes,1,function(x){return(exp(t(x)%*%x))}))})
   }
@@ -290,9 +295,6 @@ bircpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma 
   # optimization
   print("I can begin the optimization. Please be aware that it can take some time to run.")
   
-  # opt <- bilvsblNC(param, data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}), nq=nbnodes, adapt = adapt, grp=ngroupvar, weights=weights,  nodes=nodes, newnodes = newnodes, newweights = newweights, scorevar1 = all.vars(formu)[1], scorevar2 = all.vars(formu)[2], timevar = all.vars(formu)[3], covariate = covariate, REadjust = REadjust)
-  # opt <- optim(param, bilvsblNC, data=by(longdata,longdata[,"ngroupvar"],function(x){return(x}), nq=nbnodes, adapt = adapt, grp=ngroupvar, weights=weights,  nodes=nodes, newnodes = newnodes, newweights = newweights, scorevar1 = all.vars(formu)[1], scorevar2 = all.vars(formu)[2], timevar = all.vars(formu)[3], covariate = covariate, REadjust = REadjust, method="BFGS")
-  # opt <- optim(param, bilvsblNC, data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}), nq=nbnodes, adapt = adapt, grp=ngroupvar, weights=weights,  nodes=nodes, newnodes = newnodes, newweights = newweights, scorevar1 = all.vars(formu)[1], scorevar2 = all.vars(formu)[2], timevar = all.vars(formu)[3], covariate = covariate, REadjust = REadjust, method="BFGS", hessian = TRUE)
   if (nproc == 1){
     opt <- marqLevAlg::marqLevAlg(b=param, fn=bilvsblNC, data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}), nq=nbnodes, adapt = adapt, grp=ngroupvar, weights=weights,  nodes=nodes, newnodes = newnodes, newweights = newweights, scorevar1 = all.vars(formu)[1], scorevar2 = all.vars(formu)[2], timevar = all.vars(formu)[3], covariate = covariate, REadjust = REadjust)
   }
@@ -303,13 +305,17 @@ bircpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma 
 
   # OUT : fixed parameters ===========================================================================================
   if (covariate == "NULL"){
-    invhessian <- diag(34); 
-    invhessian[upper.tri(invhessian, diag=TRUE)] <- opt$v
-    invhessian <- invhessian + t(invhessian) - diag(diag(invhessian))
+    invhessian <- CholToVarCovMatrix(opt) # JE PEUX LAISSER OU REMETTRE LE INVHESSIAN OBTENU A PARTIR DE OPT$V CAR ON SE FICHE DES IC SUR LES PARAMS DE VARIANCE (SAUF DANS LES SIMUS) COMME CA PAS DE PROBLEME DE SOUPLESSE SI PLUS D'EA DANS LA DEF DU MODELE ::
     
-    tab <- cbind(opt$b[c(1,2,3,4)],sqrt(opt$v[(1:34)*(1+1:34)/2])[c(1,2,3,4)])
+    # invhessian <- diag(34)
+    # invhessian[upper.tri(invhessian, diag=TRUE)] <- opt$v
+    # invhessian <- invhessian + t(invhessian) - diag(diag(invhessian)) # si je ne remets que cette partie par contre il faut enlever le invhessian en sortie car il est faux !!
+    
+    hats <- CholToVar(opt$b)
+    
+    tab <- cbind(hats[c(1,2,3,4)],sqrt(diag(invhessian)[c(1,2,3,4)]))
     tab <- cbind(tab, tab[,1]-1.96*tab[,2],tab[,1]+1.96*tab[,2])
-    tab <- cbind(tab, opt$b[c(1,2,3,4)+12], sqrt(opt$v[(1:34)*(1+1:34)/2])[c(1,2,3,4)+12])
+    tab <- cbind(tab, hats[c(1,2,3,4)+12],sqrt(diag(invhessian)[c(1,2,3,4)+12]))
     tab <- cbind(tab, tab[,5]-1.96*tab[,6],tab[,5]+1.96*tab[,6])
     covs <- c(invhessian[1,13], invhessian[2,14], invhessian[3,15], invhessian[4,16])
     tab <- cbind(tab, sqrt((tab[,1]-tab[,5])**2/(tab[,2]**2+tab[,6]**2-2*covs)), 1-pchisq(sqrt((tab[,1]-tab[,5])**2/(tab[,2]**2+tab[,6]**2-2*covs)), df=1))
@@ -319,18 +325,20 @@ bircpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma 
 
   # OUT : variance parameters ========================================================================================
   if (REadjust == "no" | covariate == "NULL"){
-    sdres <- abs(opt$b[c(5,17)]); names(sdres) = c(all.vars(formu)[1],all.vars(formu)[2]);
-    U0_1 <- opt$b[6]; U01_1 <- opt$b[7]; U02_1 <- opt$b[8]; U1_1 <- opt$b[9]; U12_1 <- opt$b[10]; U2_1 <- opt$b[11]; Utau_1 <- opt$b[12];
-    U0_2 <- opt$b[18]; U01_2 <- opt$b[19]; U02_2 <- opt$b[20]; U1_2 <- opt$b[21]; U12_2 <- opt$b[22]; U2_2 <- opt$b[23]; Utau_2 <- opt$b[24];
-    Utau_12 <- opt$b[25]; U1_12 <- opt$b[26]; U2_12 <- opt$b[27]; U3_12 <- opt$b[28]; U4_12 <- opt$b[29]; U5_12 <- opt$b[30];
-    U6_12 <- opt$b[31]; U7_12 <- opt$b[32]; U8_12 <- opt$b[33]; U9_12 <- opt$b[34];
-    U <- matrix(c(U0_1,U01_1,U02_1,0,U1_12,U2_12,U3_12,0,0,U1_1,U12_1,0,U4_12,U5_12,U6_12,0,0,0,U2_1,0,U7_12,U8_12,U9_12,0,0,0,0,Utau_1,0,0,0,Utau_12,0,0,0,0,U0_2,U01_2,U02_2,0,0,0,0,0,0,U1_2,U12_2,0,0,0,0,0,0,0,U2_2,0,0,0,0,0,0,0,0,Utau_2),byrow=TRUE, nrow=8)
-    B <- t(U) %*% U
+    sdres <- sqrt(hats[c(5,17)]); names(sdres) = c(all.vars(formu)[1],all.vars(formu)[2]);
+    B <- matrix(c(hats[c(6,7,8)], 0, hats[c(26,27,28)], 0, 
+                  hats[c(7,9,10)], 0, hats[c(29,30,31)], 0, 
+                  hats[c(8,10,11)], 0, hats[c(32,33,34)], 0, 
+                  rep(0,3), hats[12], rep(0,3), hats[25],
+                  hats[c(26,29,32)], 0, hats[c(18,19,20)], 0,
+                  hats[c(27,30,33)], 0, hats[c(19,21,22)], 0,
+                  hats[c(28,31,34)], 0, hats[c(20,22,23)], 0,
+                  rep(0,3), hats[25], rep(0,3), hats[24]), byrow = TRUE, nrow = 8)
   }
 
   # return(opt)
   # return(list("Loglik" = opt$value, optpar= opt$par, conv = opt$convergence))
-  return(list("Loglik" = opt$fn.value, "fixed" = round(tab,3), "sdres" = sdres, "VarEA" = B, optpar= opt$b, "covariate" = covariate, "REadjust" = REadjust, "invhessian"= invhessian, "conv" = opt$istop, "init" = param, "niter" = opt$iter))
+  return(list("Loglik" = opt$fn.value, "fixed" = round(tab,3), "sdres" = sdres, "VarEA" = B, optpar= hats, "covariate" = covariate, "REadjust" = REadjust, "invhessian"= invhessian, "conv" = opt$istop, "init" = CholToVar(param), "niter" = opt$iter))
 }
 
 #' Individual prediction based on a \code{rcpme} model
@@ -362,4 +370,66 @@ IndPred <- function(rcpmeObj){
     Ypred <- mapply(function(a,b){return(CPmodel(betas[1]+betas[2]*b[,covInd][1]+a[1], betas[3]+betas[4]*b[,covInd][1]+a[2], betas[5]+betas[6]*b[,covInd][1]+a[3], betas[7]+betas[8]*b[,covInd][1]+a[4], t = b[,timevar], gamma = 0.1))}, REesti, by(longdata,longdata[,groupvar],function(x){return(x)}))
   }
   return(Ypred) 
+}
+
+
+VarToChol <- function(param){
+  # this function computes a set of cholesky type parameters from a set of variance type parameters so that user
+  # can input variance parameters directly
+  
+  B <- matrix(c(param[c(6,7,8)], 0, param[c(26,27,28)], 0, 
+                param[c(7,9,10)], 0, param[c(29,30,31)], 0, 
+                param[c(8,10,11)], 0, param[c(32,33,34)], 0, 
+                rep(0,3), param[12], rep(0,3), param[25],
+                param[c(26,29,32)], 0, param[c(18,19,20)], 0,
+                param[c(27,30,33)], 0, param[c(19,21,22)], 0,
+                param[c(28,31,34)], 0, param[c(20,22,23)], 0,
+                rep(0,3), param[25], rep(0,3), param[24]), byrow = TRUE, nrow = 8)
+  
+  U <- chol(B)
+  
+  return(c(param[1:4], sqrt(param[5]), U[1,1], U[1,2], U[1,3], U[2,2], U[2,3], U[3,3], U[4,4],
+           param[13:16], sqrt(param[17]), U[5,5], U[5,6], U[5,7], U[6,6], U[6,7], U[7,7], U[8,8],
+           U[4,4], U[1,5], U[1,6], U[1,7], U[2,5], U[2,6], U[2,7], U[3,5], U[3,6], U[3,7]))
+}
+
+CholToVar <- function(x){
+  
+  Uepsa <- x[5]; U0a <- x[6]; U01a <- x[7]; U02a <- x[8]; U1a <- x[9]; U12a <- x[10]; U2a <- x[11]; Utaua <- x[12];
+  Uepsb <- x[17]; U0b <- x[18]; U01b <- x[19]; U02b <- x[20]; U1b <- x[21]; U12b <- x[22]; U2b <- x[23]; Utaub <- x[24];
+  Utau <- x[25]; U1 <- x[26]; U2 <- x[27]; U3 <- x[28]; U4 <- x[29]; U5 <- x[30]; U6 <- x[31]; U7 <- x[32]; U8 <- x[33]; U9 <- x[34];
+  
+  return(c(x[1:4], Uepsa**2, U0a**2, U01a * U0a, U02a * U0a, U01a**2+U1a**2, U02a * U01a + U12a * U1a, U02a**2 + U12a**2 + U2a**2, Utaua**2,
+           x[13:16], Uepsb**2, U1**2 + U4**2 + U7**2 + U0b**2, U1*U2 + U4*U5 + U7*U8 + U0b*U01b, U1*U3 + U4*U6 + U7*U9 + U0b*U02b,
+           U2**2+U5**2+U8**2+U01b**2+U1b**2, U3*U2 + U6*U5 + U9*U8 + U01b*U02b + U1b*U12b, U3**2 + U6**2 + U9**2 + U02b**2 + U12b**2 + U2b**2,
+           Utau**2 + Utaub**2, Utaua*Utau, U0a*U1, U0a*U2, U0a*U3, U01a*U1 + U1a*U4, U01a*U2 + U1a*U5, U01a*U3 + U1a*U6, 
+           U02a*U1 + U12a*U4 + U2a*U7, U02a*U2 + U12a*U5 + U2a * U8, U02a*U3 + U12a*U6 + U2a*U9))
+}
+CholToVarCovMatrix <- function(sim){
+  
+  x <- sim$b
+  
+  Uepsa <- x[5]; U0a <- x[6]; U01a <- x[7]; U02a <- x[8]; U1a <- x[9]; U12a <- x[10]; U2a <- x[11]; Utaua <- x[12];
+  Uepsb <- x[17]; U0b <- x[18]; U01b <- x[19]; U02b <- x[20]; U1b <- x[21]; U12b <- x[22]; U2b <- x[23]; Utaub <- x[24];
+  Utau <- x[25]; U1 <- x[26]; U2 <- x[27]; U3 <- x[28]; U4 <- x[29]; U5 <- x[30]; U6 <- x[31]; U7 <- x[32]; U8 <- x[33]; U9 <- x[34];
+  
+  vi <- diag(34)
+  vi[upper.tri(vi, diag=TRUE)] <- sim$v
+  vi <- vi + t(vi) - diag(diag(vi))
+  
+  Di <- matrix(c(1, rep(0,34), 1, rep(0,34), 1, rep(0,34), 1, rep(0,34), 2*Uepsa, rep(0,34), 2*U0a, rep(0,33), U01a, U0a, rep(0,32), U02a, 0, 
+                 U0a, rep(0,32), 2*U01a, 0, 2*U1a, rep(0,31), U02a, U01a, U12a, U1a, rep(0,31), 2*U02a, 0, 2*U12a, 2*U2a, rep(0,34),
+                 2*Utaua, rep(0,34), 1, rep(0,34), 1, rep(0,34), 1, rep(0,34), 1, rep(0,34), 2*Uepsb, rep(0,34), 2*U0b, rep(0,7),
+                 2*U1, 0, 0, 2*U4, 0, 0, 2*U7, rep(0,19), U01b, U0b, rep(0,6), U2, U1, 0, U5, U4, 0, U8, U7,
+                 rep(0,18), U02b, 0, U0b, rep(0,5), U3, 0, U1, U6, 0, U4, U9, 0, U7, rep(0,18), 2*U01b, 0, 2*U1b, rep(0,5), 2*U2,
+                 0, 0, 2*U5, 0, 0, 2*U8, rep(0,19), U02b, U01b, U12b, U1b, rep(0,4), U3, U2, 0, U6, U5, 0, U9, U8, rep(0,19),
+                 2*U02b, 0, 2*U12b, 2*U2b, rep(0,4), 2*U3, 0, 0, 2*U6, 0, 0, 2*U9, rep(0,23), 2*Utaub, 2*Utau, rep(0,20), Utau, rep(0,12),
+                 Utaua, rep(0,14), U1, rep(0,19), U0a, rep(0,13), U2, rep(0,20), U0a, rep(0,12), U3, rep(0,21), U0a, rep(0,12),
+                 U1,0,U4, rep(0,16), U01a,0,0,U1a, rep(0,11), U2, 0, U5, rep(0,17), U01a, 0, 0, U1a, rep(0,10), U3, 0, U6, rep(0,18),
+                 U01a, 0, 0, U1a, rep(0,10), U1, 0, U4, U7, rep(0,14), U02a, 0, 0, U12a, 0, 0, U2a, rep(0,9), U2, 0, U5, U8, rep(0,15), 
+                 U02a, 0, 0, U12a, 0, 0, U2a, rep(0,8), U3, 0, U6, U9, rep(0,16), U02a, 0, 0, U12a, 0, 0, U2a), byrow = TRUE, nrow = 34)
+  
+  nvi <- Di %*% vi %*% t(Di)
+  
+  return(nvi)
 }
