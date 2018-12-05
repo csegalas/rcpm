@@ -49,7 +49,6 @@ double dmvnrmarma1d(arma::rowvec x, arma::rowvec mean, arma::mat sigma, bool log
   return(out);
 }
 
-// VERSION PAQUID
 // [[Rcpp::depends("RcppArmadillo")]]
 // [[Rcpp::export]]
 double ScoreInd(DataFrame data, double Beta0, double Beta1, double sigma, double mutau, double sigmatau, arma::mat B, List MATmus, int nbnodes, int nd, List newnodes, List newweights, String scorevar, String timevar, String groupvar){

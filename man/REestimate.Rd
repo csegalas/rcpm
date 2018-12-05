@@ -4,7 +4,7 @@
 \alias{REestimate}
 \title{Random Effects estimate}
 \usage{
-REestimate(rcpmeObj, longdata, var = FALSE)
+REestimate(rcpmeObj, longdata, var = FALSE, onlytau = FALSE)
 }
 \arguments{
 \item{rcpmeObj}{An object which contains the output of a \code{rcpme} function call.}

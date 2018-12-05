@@ -5,7 +5,8 @@
 \title{Bivariate Random Change Point Mixed Model}
 \usage{
 bircpme(longdata, formu, covariate = "NULL", REadjust = "no",
-  gamma = 0.1, nbnodes = 10, adapt = FALSE, param = NULL)
+  gamma = 0.1, nbnodes = 10, adapt = FALSE, param = NULL,
+  nproc = 1)
 }
 \arguments{
 \item{longdata}{A dataframe containing the variables used in the formula  \code{formu}}
