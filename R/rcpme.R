@@ -353,17 +353,14 @@ REestimate <- function(rcpmeObj, longdata, var = FALSE, onlytau = FALSE){
   
   if (onlytau == FALSE){
     re <- rep(0,4)
-    if (var == FALSE) {return(by(longdata,longdata[,groupvar],function(x){if(sum(!is.na(x[,scorevar])!=0)) {opt<-marqLevAlg(b = re, fn = IndRePostDis, rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, timevar = timevar);return("par"=opt$b);} else {return("par"=re);}}))}
-    if (var == TRUE) {return(by(longdata,longdata[,groupvar],function(x){if(sum(!is.na(x[,scorevar])!=0)) {opt<-marqLevAlg(b = re, fn = IndRePostDis, rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, timevar = timevar);return(list("par"=opt$b,"var"=matrix(c(opt$v[c(1,2,4,7,2,3,5,8,4,5,6,9,7,8,9,10)]), nrow = 4, byrow=TRUE)));} else {return(list("par"=re, "var"=diag(4)))}}))}
+    if (var == FALSE) {return(by(longdata,longdata[,groupvar],function(x){if(sum(!is.na(x[,scorevar])!=0)) {opt<-marqLevAlg(b = re, fn = IndRePostDis, rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, timevar = timevar);if(opt$istop == 1) {return("par"=opt$b);} else {return("par"=re);}} else {return("par"=re);}}))}
+    if (var == TRUE) {return(by(longdata,longdata[,groupvar],function(x){if(sum(!is.na(x[,scorevar])!=0)) {opt<-marqLevAlg(b = re, fn = IndRePostDis, rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, timevar = timevar);if(opt$istop == 1) {return(list("par"=opt$b,"var"=matrix(c(opt$v[c(1,2,4,7,2,3,5,8,4,5,6,9,7,8,9,10)]), nrow = 4, byrow=TRUE)));} else {return(list("par"=re, "var"=diag(4)))}} else {return(list("par"=re, "var"=diag(4)))}}))}
   }
   
   else {
     re <- 0
-    if (var == FALSE) {return(by(longdata,longdata[,groupvar],function(x){if(sum(!is.na(x[,scorevar])!=0)) {opt<-marqLevAlg(b = re, fn = IndRePostDis2, rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, timevar = timevar);return("par"=opt$b);} else {return("par"=re);}}))}
-    if (var == TRUE) {return(by(longdata,longdata[,groupvar],function(x){if(sum(!is.na(x[,scorevar])!=0)) {opt<-marqLevAlg(b = re, fn = IndRePostDis2, rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, timevar = timevar);return(list("par"=opt$b,"var"=opt$v));} else {return(list("par"=0, "var"=1))}}))}
-    # if (var == FALSE) {return(by(longdata,longdata[,groupvar],function(x){opt<-optim(par = re, fn = IndRePostDis2, rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, timevar = timevar, method = "BFGS");return("par"=opt$par)}))}
-    # if (var == TRUE) {return(by(longdata,longdata[,groupvar],function(x){opt<-optim(par = re, fn = IndRePostDis2, rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, timevar = timevar, hessian = TRUE, method = "BFGS");return(list("par"=opt$par,"var"=solve(opt$hessian)))}))}
-    
+    if (var == FALSE) {return(by(longdata,longdata[,groupvar],function(x){if(sum(!is.na(x[,scorevar])!=0)) {opt<-marqLevAlg(b = re, fn = IndRePostDis2, rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, timevar = timevar);if(opt$istop ==1) {return("par"=opt$b);} else {return("par"=re);}} else {return("par"=re);}}))}
+    if (var == TRUE) {return(by(longdata,longdata[,groupvar],function(x){if(sum(!is.na(x[,scorevar])!=0)) {opt<-marqLevAlg(b = re, fn = IndRePostDis2, rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, timevar = timevar);if(opt$istop == 1) {return(list("par"=opt$b,"var"=opt$v));} else {return(list("par"=0, "var"=1))};} else {return(list("par"=0, "var"=1))}}))}
   }
   
 }
