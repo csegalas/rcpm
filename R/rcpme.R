@@ -43,10 +43,12 @@ gauherm <- function(n,m){
   return(list(x = points, w = weights))
 }
 
-CPmodel <- function(a,b,c,d,t,gamma){
-  return(a + b*t + c*sqrt((t-d)**2+gamma))
+CPmodel <- function(a,b,c,d,t,gamma,model="test"){
+  if (model=="test") return(a + b*t + c*sqrt((t-d)**2+gamma))
+  if (model=="bw") return(a + b*(t-d) + c*sqrt((t-d)**2+gamma))
 }
-geneData <- function(n = 100, hyp = "null", params, pNA = 0, DO = 0, vis = c(0, 3, 6, 9, 12, 15, 18, 21), beta2alea=FALSE){
+
+geneData <- function(n = 100, hyp = "null", params, pNA = 0, DO = 0, vis = c(0, 3, 6, 9, 12, 15, 18, 21), beta2alea=FALSE, model = "test", gamma = 0.1){
   
   nbvis = length(vis)
   donnees <- matrix(NA, nrow = n * nbvis, ncol = ifelse(hyp=="altaleabiv", 4, 3))
@@ -99,7 +101,7 @@ geneData <- function(n = 100, hyp = "null", params, pNA = 0, DO = 0, vis = c(0, 
         donnees[((nbvis*(i-1))+1):(nbvis*i),2] <- vis
         for (j in seq(nbvis)){
           eps = rnorm(1,0,sigma)
-          donnees[(nbvis*(i-1))+j,3] = CPmodel(Beta0 + bis[i,1], Beta1 + bis[i,2], Beta2, mutau + bis[i,3], vis[j], 0.1) + eps
+          donnees[(nbvis*(i-1))+j,3] = CPmodel(Beta0 + bis[i,1], Beta1 + bis[i,2], Beta2, mutau + bis[i,3], vis[j], gamma, model = model) + eps
         }
       }
     }
@@ -129,7 +131,7 @@ geneData <- function(n = 100, hyp = "null", params, pNA = 0, DO = 0, vis = c(0, 
         donnees[((nbvis*(i-1))+1):(nbvis*i),2] <- vis
         for (j in seq(nbvis)){
           eps = rnorm(1,0,sigma)
-          donnees[(nbvis*(i-1))+j,3] = CPmodel(Beta0 + bis[i,1], Beta1 + bis[i,2], Beta2 + bis[i,3], mutau + bis[i,4], vis[j], 0.1) + eps
+          donnees[(nbvis*(i-1))+j,3] = CPmodel(Beta0 + bis[i,1], Beta1 + bis[i,2], Beta2 + bis[i,3], mutau + bis[i,4], vis[j], gamma, model = model) + eps
         }
       }
     }
@@ -162,8 +164,8 @@ geneData <- function(n = 100, hyp = "null", params, pNA = 0, DO = 0, vis = c(0, 
         donnees[((nbvis*(i-1))+1):(nbvis*i),2] <- vis
         for (j in seq(nbvis)){
           eps1 = rnorm(1,0,sqrt(Vareps_1)); eps2 <- rnorm(1,0,sqrt(Vareps_2));
-          donnees[(nbvis*(i-1))+j,3] = CPmodel(Beta0_1 + bis[i,1], Beta1_1 + bis[i,2], Beta2_1 + bis[i,3], mutau_1 + bis[i,4], vis[j], 0.1) + eps1
-          donnees[(nbvis*(i-1))+j,4] = CPmodel(Beta0_2 + bis[i,5], Beta1_2 + bis[i,6], Beta2_2 + bis[i,7], mutau_2 + bis[i,8], vis[j], 0.1) + eps2
+          donnees[(nbvis*(i-1))+j,3] = CPmodel(Beta0_1 + bis[i,1], Beta1_1 + bis[i,2], Beta2_1 + bis[i,3], mutau_1 + bis[i,4], vis[j], gamma, model = model) + eps1
+          donnees[(nbvis*(i-1))+j,4] = CPmodel(Beta0_2 + bis[i,5], Beta1_2 + bis[i,6], Beta2_2 + bis[i,7], mutau_2 + bis[i,8], vis[j], gamma, model = model) + eps2
         }
       }
       
@@ -211,7 +213,7 @@ geneData <- function(n = 100, hyp = "null", params, pNA = 0, DO = 0, vis = c(0, 
 #' @export
 #'
 #' @examples
-rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 0.1, nbnodes = 10, param = NULL){
+rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 0.1, nbnodes = 10, param = NULL, model = "test"){
   
   if (covariate == "NULL" & REadjust != "no") stop("Need a covariate to adjust random effects variance structure.")
   if (REadjust == "prop") stop("It has not been implemented yet. Sorry for the inconvenience...")
@@ -220,6 +222,7 @@ rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 
     if ((covariate != "NULL") & (REadjust == "no") & (length(param) != 16)) stop("Initial parameters vector must be a vector of size 16.")
     if ((covariate != "NULL") & (REadjust == "yes") & (length(param) != 23)) stop("Initial parameters vector must be a vector of size 23.")
     if ((covariate != "NULL") & (REadjust == "prop") & (length(param) != 17)) stop("Initial parameters vector must be a vector of size 18.")
+    if ((model != "test") & (model != "bw")) stop("For model option you must choose either test or bw option.")
   }
   
   # =============================================
@@ -272,21 +275,25 @@ rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 
   # varsbeta2 <- if (all.vars(beta2)[1]=="1") all.vars(beta2)[-1] else all.vars(beta2)
   # varsbeta3 <- if (all.vars(mutau)[1]=="1") all.vars(mutau)[-1] else all.vars(mutau)
   
-  opt <- optim(param,lvsblNCgen,data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}),nq=nbnodes,grp=ngroupvar,weights=weights, nodes=nodes, scorevar = all.vars(formu)[1], timevar = all.vars(formu)[2], covariate = covariate, REadjust = REadjust, hessian = TRUE, method="BFGS")
+  opt <- marqLevAlg(b=param,fn=lvsblNCgen,data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}),nq=nbnodes,grp=ngroupvar,weights=weights, nodes=nodes, scorevar = all.vars(formu)[1], timevar = all.vars(formu)[2], covariate = covariate, REadjust = REadjust, model = model)
 
   # OUT : fixed parameters ===========================================================================================
   
   if (covariate != "NULL"){
-    invhessian <- solve(opt$hessian)
-    tab <- cbind(opt$par[c(1,13,2,14,3,15,4,16)],sqrt(diag(invhessian))[c(1,13,2,14,3,15,4,16)])
+    invhessian <- diag(12)
+    invhessian[upper.tri(invhessian, diag=TRUE)] <- opt$v
+    invhessian <- invhessian + t(invhessian) - diag(diag(invhessian)) 
+    tab <- cbind(opt$b[c(1,13,2,14,3,15,4,16)],sqrt(diag(invhessian))[c(1,13,2,14,3,15,4,16)])
     tab <- cbind(tab, tab[,1]-1.96*tab[,2],tab[,1]+1.96*tab[,2], tab[,1]/tab[,2],1-pchisq(tab[,1]**2/tab[,2]**2,df=1)); tab[c(5,7),c(5,6)] = NA;
     rownames(tab) <- c("beta0", paste("beta0*",covariate),"beta1", paste("beta1*",covariate),"beta2", paste("beta2*",covariate),"mutau", paste("mutau*",covariate))
     colnames(tab) <- c("par", "se(par)", "ICinf", "ICsup", "Wald stat.", "pvalue")
   }
   
   else {
-    invhessian <- solve(opt$hessian)
-    tab <- cbind(opt$par[c(1,2,3,4)],sqrt(diag(invhessian))[c(1,2,3,4)])
+    invhessian <- diag(12)
+    invhessian[upper.tri(invhessian, diag=TRUE)] <- opt$v
+    invhessian <- invhessian + t(invhessian) - diag(diag(invhessian))
+    tab <- cbind(opt$b[c(1,2,3,4)],sqrt(diag(invhessian))[c(1,2,3,4)])
     tab <- cbind(tab, tab[,1]-1.96*tab[,2],tab[,1]+1.96*tab[,2], tab[,1]/tab[,2], 1-pchisq(tab[,1]**2/tab[,2]**2,df=1))
     tab[c(3,4),c(5,6)] = NA
     rownames(tab) <- c("beta0", "beta1", "beta2", "mutau")
@@ -296,8 +303,8 @@ rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 
   # OUT : variance parameters ===========================================================================================
   
   if (REadjust == "no" | covariate == "NULL"){
-    seps <- abs(opt$par[5]); U0 <- opt$par[6]; U01 <- opt$par[7]; U02 <- opt$par[8]; U1 <- opt$par[9]; U12 <- opt$par[10]; U2 <- opt$par[11]; stau <- abs(opt$par[12]);
-    U <- matrix(c(U0,U01,U02,0,U1,U12,0,0,U2),nrow=3); 
+    seps <- abs(opt$b[5]); U0 <- opt$b[6]; U01 <- opt$b[7]; U02 <- opt$b[8]; U1 <- opt$b[9]; U12 <- opt$b[10]; U2 <- opt$b[11]; stau <- abs(opt$b[12]);
+    U <- matrix(c(U0,U01,U02,0,U1,U12,0,0,U2), byrow = TRUE, nrow=3); 
     B <- t(U) %*% U;
     vars <- data.frame(c(seps, sqrt(diag(B)), stau, B[1,2:3], B[2,3]))
     rownames(vars) <- c("sdres", "sd0", "sd1", "sd2", "sdtau", "cov01", "cov02", "cov12")
@@ -306,10 +313,10 @@ rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 
   }
   
   if (REadjust == "yes"){
-    seps <- abs(opt$par[5]); U0 <- opt$par[6]; U01 <- opt$par[7]; U02 <- opt$par[8]; U1 <- opt$par[9]; U12 <- opt$par[10]; U2 <- opt$par[11]; utau <- abs(opt$par[12]);
-    U <- matrix(c(U0,U01,U02,0,U1,U12,0,0,U2),nrow=3); 
+    seps <- abs(opt$b[5]); U0 <- opt$b[6]; U01 <- opt$b[7]; U02 <- opt$b[8]; U1 <- opt$b[9]; U12 <- opt$b[10]; U2 <- opt$b[11]; utau <- abs(opt$b[12]);
+    U <- matrix(c(U0,U01,U02,0,U1,U12,0,0,U2),byrow = TRUE, nrow=3); 
     B <- t(U) %*% U;
-    V0 <- opt$par[6]+opt$par[17]; V01 <- opt$par[7]+opt$par[18]; V02 <- opt$par[8]+opt$par[19]; V1 <- opt$par[9]+opt$par[20]; V12 <- opt$par[10]+opt$par[21]; V2 <- opt$par[11]+opt$par[22]; vtau <- abs(opt$par[12]+opt$par[23]);
+    V0 <- opt$b[6]+opt$b[17]; V01 <- opt$b[7]+opt$b[18]; V02 <- opt$b[8]+opt$b[19]; V1 <- opt$b[9]+opt$b[20]; V12 <- opt$b[10]+opt$b[21]; V2 <- opt$b[11]+opt$b[22]; vtau <- abs(opt$b[12]+opt$b[23]);
     V <- matrix(c(V0,V01,V02,0,V1,V12,0,0,V2),nrow=3); 
     BV <- t(V) %*% V;
     varsU <- c(seps, sqrt(diag(B)), utau, B[1,2:3], B[2,3])
@@ -323,8 +330,8 @@ rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 
   }
   
   if (REadjust == "prop"){ # fonctionne pas pour le moment
-    seps <- abs(opt$par[5]); U0 <- opt$par[6]; U01 <- opt$par[7]; U02 <- opt$par[8]; U1 <- opt$par[9]; U12 <- opt$par[10]; U2 <- opt$par[11]; utau <- abs(opt$par[12]);
-    U <- matrix(c(U0,U01,U02,0,U1,U12,0,0,U2),nrow=3); 
+    seps <- abs(opt$b[5]); U0 <- opt$b[6]; U01 <- opt$b[7]; U02 <- opt$b[8]; U1 <- opt$b[9]; U12 <- opt$b[10]; U2 <- opt$b[11]; utau <- abs(opt$b[12]);
+    U <- matrix(c(U0,U01,U02,0,U1,U12,0,0,U2),byrow = TRUE,nrow=3); 
     B <- t(U) %*% U;
     coeff <- abs(1+param[17])
     vars <- data.frame(c(seps, sqrt(diag(B)), utau, B[1,2:3], B[2,3], coeff))
@@ -332,7 +339,7 @@ rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 
     colnames(vars) <- c("par")
   }
   
-  return(list("call" = as.list(match.call()), "Loglik" = opt$value, "formula" = formu, "fixed" = round(tab,3), "sdres"=vars[1,1], "VarEA" = VarEA, optpar= opt$par, "covariate" = covariate, "REadjust" = REadjust, "invhessian" = invhessian, "conv" = opt$convergence, "init" = param))
+  return(list("call" = as.list(match.call()), "Loglik" = opt$fn.value, "formula" = formu, "fixed" = round(tab,3), "sdres"=seps, "VarEA" = VarEA, optpar= opt$b, "covariate" = covariate, "REadjust" = REadjust, "invhessian" = invhessian, "conv" = opt$istop, "init" = param, "model" = model))
 }
 
 #' Random Effects estimate
@@ -347,22 +354,46 @@ rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 
 REestimate <- function(rcpmeObj, longdata, var = FALSE, onlytau = FALSE){
   
   formu <- rcpmeObj$formula
-  scorevar = all.vars(formu)[1]
-  timevar = all.vars(formu)[2]
-  groupvar = all.vars(formu)[3]
+  model <- rcpmeObj$model
   
-  if (onlytau == FALSE){
-    re <- rep(0,4)
-    if (var == FALSE) {return(by(longdata,longdata[,groupvar],function(x){if(sum(!is.na(x[,scorevar])!=0)) {opt<-marqLevAlg(b = re, fn = IndRePostDis, rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, timevar = timevar);if(opt$istop == 1) {return("par"=opt$b);} else {return("par"=re);}} else {return("par"=re);}}))}
-    if (var == TRUE) {return(by(longdata,longdata[,groupvar],function(x){if(sum(!is.na(x[,scorevar])!=0)) {opt<-marqLevAlg(b = re, fn = IndRePostDis, rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, timevar = timevar);if(opt$istop == 1) {return(list("par"=opt$b,"var"=matrix(c(opt$v[c(1,2,4,7,2,3,5,8,4,5,6,9,7,8,9,10)]), nrow = 4, byrow=TRUE)));} else {return(list("par"=re, "var"=diag(4)))}} else {return(list("par"=re, "var"=diag(4)))}}))}
+  if (length(all.vars(formu)) == 3){ # if univariate
+    
+    scorevar = all.vars(formu)[1]
+    timevar = all.vars(formu)[2]
+    groupvar = all.vars(formu)[3]
+    
+    if (onlytau == FALSE){
+      re <- rep(0,4)
+      if (var == FALSE) {return(by(longdata,longdata[,groupvar],function(x){if(sum(!is.na(x[,scorevar])!=0)) {opt<-marqLevAlg(b = re, fn = IndRePostDis, rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, timevar = timevar, model = model);if(opt$istop == 1) {return("par"=opt$b);} else {return("par"=re);}} else {return("par"=re);}}))}
+      if (var == TRUE) {return(by(longdata,longdata[,groupvar],function(x){if(sum(!is.na(x[,scorevar])!=0)) {opt<-marqLevAlg(b = re, fn = IndRePostDis, rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, timevar = timevar, model = model);if(opt$istop == 1) {return(list("par"=opt$b,"var"=matrix(c(opt$v[c(1,2,4,7,2,3,5,8,4,5,6,9,7,8,9,10)]), nrow = 4, byrow=TRUE)));} else {return(list("par"=re, "var"=diag(4)))}} else {return(list("par"=re, "var"=diag(4)))}}))}
+    }
+    
+    else {
+      re <- 0
+      if (var == FALSE) {return(by(longdata,longdata[,groupvar],function(x){if(sum(!is.na(x[,scorevar])!=0)) {opt<-marqLevAlg(b = re, fn = IndRePostDis2, rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, timevar = timevar, model = model);if(opt$istop ==1) {return("par"=opt$b);} else {return("par"=re);}} else {return("par"=re);}}))}
+      if (var == TRUE) {return(by(longdata,longdata[,groupvar],function(x){if(sum(!is.na(x[,scorevar])!=0)) {opt<-marqLevAlg(b = re, fn = IndRePostDis2, rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, timevar = timevar, model = model);if(opt$istop == 1) {return(list("par"=opt$b,"var"=opt$v));} else {return(list("par"=0, "var"=1))};} else {return(list("par"=0, "var"=1))}}))}
+    }
   }
   
-  else {
-    re <- 0
-    if (var == FALSE) {return(by(longdata,longdata[,groupvar],function(x){if(sum(!is.na(x[,scorevar])!=0)) {opt<-marqLevAlg(b = re, fn = IndRePostDis2, rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, timevar = timevar);if(opt$istop ==1) {return("par"=opt$b);} else {return("par"=re);}} else {return("par"=re);}}))}
-    if (var == TRUE) {return(by(longdata,longdata[,groupvar],function(x){if(sum(!is.na(x[,scorevar])!=0)) {opt<-marqLevAlg(b = re, fn = IndRePostDis2, rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, timevar = timevar);if(opt$istop == 1) {return(list("par"=opt$b,"var"=opt$v));} else {return(list("par"=0, "var"=1))};} else {return(list("par"=0, "var"=1))}}))}
-  }
+  if (length(all.vars(formu)) == 4){ # if bivariate
+    
+    scorevar1 = all.vars(formu)[1]
+    scorevar2 = all.vars(formu)[2]
+    timevar = all.vars(formu)[3]
+    groupvar = all.vars(formu)[4]
   
+    if (onlytau == FALSE){
+      re <- rep(0,8)
+      if (var == FALSE) {return(by(longdata,longdata[,groupvar],function(x){if(sum(!is.na(x[,c(scorevar1, scorevar2)])!=0)) {opt<-marqLevAlg(b = re, fn = BivIndRePostDis, rcpmeObj = rcpmeObj, data = x, scorevar1 = scorevar1, scorevar2 = scorevar2, timevar = timevar, model = model);if(opt$istop == 1) {return("par"=opt$b);} else {return("par"=re);}} else {return("par"=re);}}))}
+      if (var == TRUE) {return(by(longdata,longdata[,groupvar],function(x){if(sum(!is.na(x[,c(scorevar1, scorevar2)])!=0)) {opt<-marqLevAlg(b = re, fn = BivIndRePostDis, rcpmeObj = rcpmeObj, data = x, scorevar1 = scorevar1, scorevar2 = scorevar2, timevar = timevar, model = model);if(opt$istop == 1) {return(list("par"=opt$b,"var"=matrix(c(opt$v[c(1,2,4,7,2,3,5,8,4,5,6,9,7,8,9,10)]), nrow = 4, byrow=TRUE)));} else {return(list("par"=re, "var"=diag(4)))}} else {return(list("par"=re, "var"=diag(4)))}}))}
+    }
+    
+    else {
+      re <- c(0,0)  
+      if (var == FALSE) {return(by(longdata,longdata[,groupvar],function(x){if(sum(!is.na(x[,c(scorevar1, scorevar2)])!=0)) {opt<-marqLevAlg(b = re, fn = BivIndRePostDis2, rcpmeObj = rcpmeObj, data = x, scorevar1 = scorevar1, scorevar2 = scorevar2, timevar = timevar, model = model);if(opt$istop ==1) {return("par"=opt$b);} else {return("par"=re);}} else {return("par"=re);}}))}
+      if (var == TRUE) {return(by(longdata,longdata[,groupvar],function(x){if(sum(!is.na(x[,c(scorevar1, scorevar2)])!=0)) {opt<-marqLevAlg(b = re, fn = BivIndRePostDis2, rcpmeObj = rcpmeObj, data = x, scorevar1 = scorevar1, scorevar2 = scorevar2, timevar = timevar, model = model);if(opt$istop == 1) {return(list("par"=opt$b,"var"=opt$v));} else {return(list("par"=0, "var"=1))};} else {return(list("par"=0, "var"=1))}}))}
+    }
+  }
 }
 
 # by(paquidCEPDEM,paquidCEPDEM$ID,function(x){return(IndRePostDis(re=rep(0,4), x, rcpmeobj, "isa15", "delai"))})
@@ -383,7 +414,7 @@ REestimate <- function(rcpmeObj, longdata, var = FALSE, onlytau = FALSE){
 #' @export
 #'
 #' @examples
-bircpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 0.1, nbnodes = 10, adapt = FALSE, param = NULL, nproc = 1){
+bircpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 0.1, nbnodes = 10, adapt = FALSE, param = NULL, nproc = 1, model = "test"){
   
   # errors handling
   if (covariate == "NULL" & REadjust != "no") stop("Need a covariate to adjust random effects variance structure.")
@@ -413,8 +444,8 @@ bircpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma 
   
   # estimation of univariate models and initialization
   print("I need to estimate both univariate models first...")
-  rcpmeObj1 <- rcpme(longdata, as.formula(paste(all.vars(formu)[1], "~", all.vars(formu)[3], "|", all.vars(formu)[4])), covariate = covariate, REadjust = REadjust, gamma = gamma, nbnodes = 20)
-  rcpmeObj2 <- rcpme(longdata, as.formula(paste(all.vars(formu)[2], "~", all.vars(formu)[3], "|", all.vars(formu)[4])), covariate = covariate, REadjust = REadjust, gamma = gamma, nbnodes = 20)
+  rcpmeObj1 <- rcpme(longdata, as.formula(paste(all.vars(formu)[1], "~", all.vars(formu)[3], "|", all.vars(formu)[4])), covariate = covariate, REadjust = REadjust, gamma = gamma, nbnodes = 20, model = model)
+  rcpmeObj2 <- rcpme(longdata, as.formula(paste(all.vars(formu)[2], "~", all.vars(formu)[3], "|", all.vars(formu)[4])), covariate = covariate, REadjust = REadjust, gamma = gamma, nbnodes = 20, model = model)
   
   if (is.null(param)){
     param <- as.numeric(c(rcpmeObj1$optpar, rcpmeObj2$optpar, rep(0,10))) # en sortie de rcpme j'ai les params de Chol pour le moment donc j'y touche pas
@@ -430,6 +461,17 @@ bircpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma 
     nodes <- sqrt(2) * nodes
     weights <- weights / pi
     newnodes = NULL; newweights = NULL;
+    
+    # optimization
+    print("I can begin the optimization. Please be aware that it can take some time to run.")
+    
+    if (nproc == 1){
+      opt <- marqLevAlg::marqLevAlg(b=param, fn=bilvsblNC, data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}), nq=nbnodes, adapt = adapt, grp=ngroupvar, weights=weights,  nodes=nodes, newnodes = newnodes, newweights = newweights, scorevar1 = all.vars(formu)[1], scorevar2 = all.vars(formu)[2], timevar = all.vars(formu)[3], covariate = covariate, REadjust = REadjust, model = model)
+    }
+    else {
+      opt <- marqLevAlgParallel::marqLevAlg(b=param, fn=bilvsblNC, data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}), nq=nbnodes, adapt = adapt, grp=ngroupvar, weights=weights,  nodes=nodes, newnodes = newnodes, newweights = newweights, scorevar1 = all.vars(formu)[1], scorevar2 = all.vars(formu)[2], timevar = all.vars(formu)[3], covariate = covariate, REadjust = REadjust, model = model, nproc = nproc)
+    }
+    
   }
   # adaptive
   if (adapt == TRUE){
@@ -437,17 +479,49 @@ bircpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma 
     REs <- lapply(mapply(FUN = function(a,b){return(list(c(a$par, b$par, a$var, b$var)))}, RE1, RE2), function(x){return(list("par"=x[c(1,2)], "var"=matrix(c(sqrt(x[3]),0,0,sqrt(x[4])), byrow=TRUE, nrow=2)))})
     newnodes <- mapply(function(a){return(list(t(apply(nodes,1,function(x){return(sqrt(2)*a[[2]]%*%x+a[[1]])}))))},REs)
     newweights <- lapply(REs,function(a){return(weights*2*det(a[[2]])*apply(nodes,1,function(x){return(exp(t(x)%*%x))}))})
+  
+    # 1st optimization
+    print("I can begin the optimization. Please be aware that it can take some time to run.")
+    
+    if (nproc == 1){
+      opt <- marqLevAlg::marqLevAlg(b=param, fn=bilvsblNC, data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}), nq=nbnodes, adapt = adapt, grp=ngroupvar, weights=weights,  nodes=nodes, newnodes = newnodes, newweights = newweights, scorevar1 = all.vars(formu)[1], scorevar2 = all.vars(formu)[2], timevar = all.vars(formu)[3], covariate = covariate, REadjust = REadjust, model = model)
+    }
+    else {
+      opt <- marqLevAlgParallel::marqLevAlg(b=param, fn=bilvsblNC, data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}), nq=nbnodes, adapt = adapt, grp=ngroupvar, weights=weights,  nodes=nodes, newnodes = newnodes, newweights = newweights, scorevar1 = all.vars(formu)[1], scorevar2 = all.vars(formu)[2], timevar = all.vars(formu)[3], covariate = covariate, REadjust = REadjust, model = model, nproc = nproc)
+    }
+    
+    # # updating gh nodes and weights
+    # print("I am updating nodes and weights of gaussian quadrature.")
+    # hats <- CholToVar(opt$b)
+    # B <- matrix(c(hats[c(6,7,8)], 0, hats[c(26,27,28)], 0,
+    #               hats[c(7,9,10)], 0, hats[c(29,30,31)], 0,
+    #               hats[c(8,10,11)], 0, hats[c(32,33,34)], 0,
+    #               rep(0,3), hats[12], rep(0,3), hats[25],
+    #               hats[c(26,29,32)], 0, hats[c(18,19,20)], 0,
+    #               hats[c(27,30,33)], 0, hats[c(19,21,22)], 0,
+    #               hats[c(28,31,34)], 0, hats[c(20,22,23)], 0,
+    #               rep(0,3), hats[25], rep(0,3), hats[24]), byrow = TRUE, nrow = 8)
+    # esti <- list("call" = NULL, "Loglik" = NULL, "formula" = formu, "fixed" = NULL, "sdres"=NULL, "VarEA" = B, "optpar"= hats, "covariate" = NULL, "REadjust" = NULL, "invhessian" = NULL, "conv" = NULL, "init" = NULL, "niter" = NULL, "model" = model)
+    # RE <- REestimate(esti, longdata, var = TRUE, onlytau = TRUE);
+    # RE <- lapply(RE, function(x){return(list("par"=x$par, "var"=chol(matrix(c(x$var[1], x$var[2], x$var[2], x$var[3]), nrow=2))))})
+    # ghcoeff <- gauherm(10, 2)
+    # nodes <- ghcoeff$x
+    # weights <- ghcoeff$w
+    # newnodes <- mapply(function(a){return(list(t(apply(nodes,1,function(x){return(sqrt(2)*a[[2]]%*%x+a[[1]])}))))},RE)
+    # newweights <- lapply(RE,function(a){return(weights*2*det(a[[2]])*apply(nodes,1,function(x){return(exp(t(x)%*%x))}))})
+    # param <- opt$b
+    # 
+    # # 2nd and last optimization
+    # print("I begin the last optimization.")
+    # if (nproc == 1){
+    #   opt <- marqLevAlg::marqLevAlg(b=param, fn=bilvsblNC, data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}), nq=nbnodes, adapt = adapt, grp=ngroupvar, weights=weights,  nodes=nodes, newnodes = newnodes, newweights = newweights, scorevar1 = all.vars(formu)[1], scorevar2 = all.vars(formu)[2], timevar = all.vars(formu)[3], covariate = covariate, REadjust = REadjust, model = model)
+    # }
+    # else {
+    #   opt <- marqLevAlgParallel::marqLevAlg(b=param, fn=bilvsblNC, data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}), nq=nbnodes, adapt = adapt, grp=ngroupvar, weights=weights,  nodes=nodes, newnodes = newnodes, newweights = newweights, scorevar1 = all.vars(formu)[1], scorevar2 = all.vars(formu)[2], timevar = all.vars(formu)[3], covariate = covariate, REadjust = REadjust, model = model, nproc = nproc)
+    # }
   }
   
-  # optimization
-  print("I can begin the optimization. Please be aware that it can take some time to run.")
-  
-  if (nproc == 1){
-    opt <- marqLevAlg::marqLevAlg(b=param, fn=bilvsblNC, data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}), nq=nbnodes, adapt = adapt, grp=ngroupvar, weights=weights,  nodes=nodes, newnodes = newnodes, newweights = newweights, scorevar1 = all.vars(formu)[1], scorevar2 = all.vars(formu)[2], timevar = all.vars(formu)[3], covariate = covariate, REadjust = REadjust)
-  }
-  else {
-    opt <- marqLevAlgParallel::marqLevAlg(b=param, fn=bilvsblNC, data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}), nq=nbnodes, adapt = adapt, grp=ngroupvar, weights=weights,  nodes=nodes, newnodes = newnodes, newweights = newweights, scorevar1 = all.vars(formu)[1], scorevar2 = all.vars(formu)[2], timevar = all.vars(formu)[3], covariate = covariate, REadjust = REadjust, nproc = nproc)
-  }
+
   
 
   # OUT : fixed parameters ===========================================================================================
@@ -483,10 +557,10 @@ bircpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma 
                   rep(0,3), hats[25], rep(0,3), hats[24]), byrow = TRUE, nrow = 8)
   }
 
-  # return(opt)
-  # return(list("Loglik" = opt$value, optpar= opt$par, conv = opt$convergence))
-  return(list("Loglik" = opt$fn.value, "fixed" = round(tab,3), "sdres" = sdres, "VarEA" = B, optpar= hats, "covariate" = covariate, "REadjust" = REadjust, "invhessian"= invhessian, "conv" = opt$istop, "init" = CholToVar(param), "niter" = opt$iter))
+  return(list("call" = as.list(match.call()), "Loglik" = opt$fn.value, "formula" = formu, "fixed" = round(tab,3), "sdres"=sdres, "VarEA" = B, optpar= hats, "covariate" = covariate, "REadjust" = REadjust, "invhessian" = invhessian, "conv" = opt$istop, "init" = CholToVar(param), "niter" = opt$iter, "model" = model))
+
 }
+
 
 #' Individual prediction based on a \code{rcpme} model
 #'
@@ -501,6 +575,7 @@ IndPred <- function(rcpmeObj){
   formu <- rcpmeObj$call$formu
   timevar = all.vars(formu)[2]
   groupvar = all.vars(formu)[3]
+  model <- rcpmeObj$model
   
   longdata <- get(paste(rcpmeObj$call$longdata))
   REesti <- REestimate(rcpmeObj, longdata)
@@ -508,13 +583,13 @@ IndPred <- function(rcpmeObj){
   
   if (rcpmeObj$covariate == "NULL"){
     betas <- as.numeric(rcpmeObj$fixed[,1])
-    Ypred <- mapply(function(a,b){return(CPmodel(betas[1]+a[1], betas[2]+a[2], betas[3]+a[3], betas[4]+a[4], t = b[,timevar], gamma = 0.1))}, REesti, by(longdata,longdata[,groupvar],function(x){return(x)}))
+    Ypred <- mapply(function(a,b){return(CPmodel(betas[1]+a[1], betas[2]+a[2], betas[3]+a[3], betas[4]+a[4], t = b[,timevar], gamma = 0.1, model = model))}, REesti, by(longdata,longdata[,groupvar],function(x){return(x)}))
   }
   
   if (rcpmeObj$covariate != "NULL"){
     betas <- as.numeric(rcpmeObj$fixed[,1])
     covInd = rcpmeObj$covariate
-    Ypred <- mapply(function(a,b){return(CPmodel(betas[1]+betas[2]*b[,covInd][1]+a[1], betas[3]+betas[4]*b[,covInd][1]+a[2], betas[5]+betas[6]*b[,covInd][1]+a[3], betas[7]+betas[8]*b[,covInd][1]+a[4], t = b[,timevar], gamma = 0.1))}, REesti, by(longdata,longdata[,groupvar],function(x){return(x)}))
+    Ypred <- mapply(function(a,b){return(CPmodel(betas[1]+betas[2]*b[,covInd][1]+a[1], betas[3]+betas[4]*b[,covInd][1]+a[2], betas[5]+betas[6]*b[,covInd][1]+a[3], betas[7]+betas[8]*b[,covInd][1]+a[4], t = b[,timevar], gamma = 0.1, model = model))}, REesti, by(longdata,longdata[,groupvar],function(x){return(x)}))
   }
   return(Ypred) 
 }

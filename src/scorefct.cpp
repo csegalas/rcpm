@@ -1,7 +1,6 @@
 #include <RcppArmadillo.h>
 using namespace Rcpp;
 
-
 // [[Rcpp::export]]
 double dn(double x, double mu, double sd) {
   return pow(2*M_PI,-0.5) * pow(sd,-1) * exp(-0.5*pow((x-mu)/sd,2));
@@ -17,12 +16,12 @@ arma::vec dmvnrmarma(arma::mat x, arma::rowvec mean, arma::mat sigma, bool logd 
   arma::mat rooti = arma::trans(arma::inv(trimatu(arma::chol(sigma,"upper"))));
   double rootisum = arma::sum(log(rooti.diag()));
   double constants = -(static_cast<double>(xdim)/2.0) * log2pi;
-
+  
   for (int i=0; i < n; i++) {
     arma::vec z = rooti * arma::trans( x.row(i) - mean) ;
     out(i)      = constants - 0.5 * arma::sum(z%z) + rootisum;
   }
-
+  
   if (logd == false) {
     out = exp(out);
   }
@@ -58,7 +57,7 @@ double ScoreInd(DataFrame data, double Beta0, double Beta1, double sigma, double
   NumericVector scoreNoNA = score[indNoNA];
   NumericVector time = data[timevar];
   NumericVector timeNoNA = time[indNoNA];
-
+  
   int lgt = scoreNoNA.length();
   if (lgt == 0){
     return 0;
@@ -191,7 +190,7 @@ double ScoreInd(DataFrame data, double Beta0, double Beta1, double sigma, double
 
 // [[Rcpp::depends("RcppArmadillo")]]
 // [[Rcpp::export]]
-double lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, NumericVector weights, NumericVector nodes, String scorevar, String timevar, String covariate, String REadjust){
+double lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, NumericVector weights, NumericVector nodes, String scorevar, String timevar, String covariate, String REadjust, String model){
   double Beta0=param(0); double Beta1=param(1); double Beta2=param(2);
   double tau=param(3); double Utau=param(11); double sigma=param(4);
   
@@ -205,12 +204,12 @@ double lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, Num
     arma::colvec scoreNoNA = as<arma::colvec>(score[indNoNA]);
     NumericVector time = datai[timevar];
     arma::colvec timeNoNA = as<arma::colvec>(time[indNoNA]);
-
+    
     int lgt = scoreNoNA.n_elem;
     double res = 0;
     
     if (lgt != 0){
-
+      
       arma::mat U = arma::zeros<arma::mat>(3,3);
       arma::mat B = arma::zeros<arma::mat>(3,3);
       
@@ -261,10 +260,11 @@ double lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, Num
         Betas(0) = Beta0 + param(12)*adjusti; Betas(1) = Beta1 + param(13)*adjusti; Betas(2)=Beta2+param(14)*adjusti;
         
         arma::mat Zk = arma::ones<arma::mat>(lgt,3);
-        Zk.col(1) = timeNoNA;
+        if (model == "test") {Zk.col(1) = timeNoNA;}
         arma::colvec muk = arma::zeros<arma::colvec>(lgt);
         arma::mat Vk = arma::zeros<arma::mat>(lgt,lgt);
         for (int k = 0; k < nq; ++k){
+          if (model == "bw") {Zk.col(1) = timeNoNA - arma::ones<arma::colvec>(lgt)*(tau+Utau*nodes(k));}
           Zk.col(2) = pow(pow(timeNoNA - arma::ones<arma::colvec>(lgt)*(tau+param(15)*adjusti+Utau*nodes(k)),2)+0.1,0.5);
           muk = Zk * Betas;  Vk = (Zk * B) * trans(Zk) + pow(sigma,2) * arma::eye<arma::mat>(lgt,lgt); 
           double f = dmvnrmarma1d(trans(scoreNoNA),trans(muk),Vk);
@@ -274,21 +274,21 @@ double lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, Num
       }
     }
   }
-  return -out;
+  return out;
 }
 
 // [[Rcpp::depends("RcppArmadillo")]]
 // [[Rcpp::export]]
-double bilvsblNC(NumericVector param, List data, int nq, bool adapt, NumericVector grp, NumericVector weights, NumericMatrix nodes, List newnodes, List newweights, String scorevar1, String scorevar2, String timevar, String covariate, String REadjust){
+double bilvsblNC(NumericVector param, List data, int nq, bool adapt, NumericVector grp, NumericVector weights, NumericMatrix nodes, List newnodes, List newweights, String scorevar1, String scorevar2, String timevar, String covariate, String REadjust, String model){
   double Beta0_1=param(0); double Beta1_1=param(1); double Beta2_1=param(2);
   double tau_1=param(3); double Utau_1=param(11); double sigma_1=param(4);
   
   double Beta0_2=param(12); double Beta1_2=param(13); double Beta2_2=param(14);
   double tau_2=param(15); double Utau_2=param(23); double sigma_2=param(16);
-
- // non adaptive
- arma::mat nnodes(pow(nq,2),2);
- NumericVector nweights(pow(nq,2));
+  
+  // non adaptive
+  arma::mat nnodes(pow(nq,2),2);
+  NumericVector nweights(pow(nq,2));
   if (adapt == FALSE){
     for (int i = 0; i<pow(nq,2); i++){
       nnodes(i,0) = nodes(i,0) * Utau_1 + nodes(i,1) * param(24);
@@ -304,7 +304,7 @@ double bilvsblNC(NumericVector param, List data, int nq, bool adapt, NumericVect
     Ure(0,0) = Utau_1; Ure(1,1) = Utau_2; Ure(0,1) = param(24); Bre = trans(Ure) * Ure;
     mure = arma::zeros<arma::rowvec>(2);
   }
-
+  
   int N = max(grp);
   double out = 0;
   for (int i = 0; i<N; i++){
@@ -330,7 +330,7 @@ double bilvsblNC(NumericVector param, List data, int nq, bool adapt, NumericVect
       arma::mat B = arma::zeros<arma::mat>(6,6);
       
       if (covariate == "NULL"){
-
+        
         U(0,0) = param(5); U(0,1) = param(6); U(0,2)=param(7); U(1,1)=param(8); U(1,2)=param(9); U(2,2)=param(10);
         U(3,3) = param(17); U(3,4) = param(18); U(3,5) = param(19); U(4,4) = param(20); U(4,5) = param(21); U(5,5) = param(22);
         U(0,3) = param(25); U(0,4) = param(26); U(0,5) = param(27); U(1,3)=param(28); U(1,4)=param(29); U(1,5) = param(30);
@@ -347,7 +347,7 @@ double bilvsblNC(NumericVector param, List data, int nq, bool adapt, NumericVect
         arma::mat Zk02 = arma::zeros<arma::mat>(lgt2,3);
         arma::mat Zk1 = arma::ones<arma::mat>(lgt1,3);
         arma::mat Zk2 = arma::ones<arma::mat>(lgt2,3);
-        Zk1.col(1) = timeNoNA1; Zk2.col(1) = timeNoNA2;
+        if (model == "test"){Zk1.col(1) = timeNoNA1; Zk2.col(1) = timeNoNA2;}
         arma::colvec muk = arma::zeros<arma::colvec>(lgt);
         arma::mat Vk = arma::zeros<arma::mat>(lgt,lgt);
         arma::mat Sigma1 = pow(sigma_1,2) * arma::eye<arma::mat>(lgt1,lgt1);
@@ -363,6 +363,9 @@ double bilvsblNC(NumericVector param, List data, int nq, bool adapt, NumericVect
         }
         
         for (int k = 0; k < pow(nq,2); ++k){
+          if (model == "bw"){
+            Zk1.col(1) = timeNoNA1 - arma::ones<arma::colvec>(lgt1)*(tau_1+nnodes(k,0)); 
+            Zk2.col(1) = timeNoNA2 - arma::ones<arma::colvec>(lgt2)*(tau_2+nnodes(k,1));}
           Zk1.col(2) = pow(pow(timeNoNA1 - arma::ones<arma::colvec>(lgt1)*(tau_1+nnodes(k,0)),2)+0.1,0.5);
           Zk2.col(2) = pow(pow(timeNoNA2 - arma::ones<arma::colvec>(lgt2)*(tau_2+nnodes(k,1)),2)+0.1,0.5);
           Zk = join_cols(join_rows(Zk1,Zk01),join_rows(Zk02,Zk2));
@@ -418,7 +421,7 @@ double bilvsblNC(NumericVector param, List data, int nq, bool adapt, NumericVect
 
 // [[Rcpp::depends("RcppArmadillo")]]
 // [[Rcpp::export]]
-double IndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String scorevar, String timevar){
+double IndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String scorevar, String timevar, String model){
   
   NumericVector scoreAll = data[scorevar];
   NumericVector timeAll = data[timevar];
@@ -432,7 +435,7 @@ double IndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String score
   }
   
   String covariate =  as<String>(rcpmeObj[7]);
-
+  
   NumericVector mus(lgt);
   arma::mat estiVarEA(4,4);
   
@@ -441,10 +444,15 @@ double IndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String score
     IntegerVector idx = IntegerVector::create(0, 1, 2, 3);
     NumericVector betas = par[idx];
     for (int i = 0; i<lgt; ++i){
-      mus(i) = par(0) + re(0) + (par(1) + re(1)) * time(i) + (par(2)+re(2)) * pow(pow(time(i) - par(3) - re(3),2)+0.1,0.5);
+      if (model == "test"){
+        mus(i) = par(0) + re(0) + (par(1) + re(1)) * time(i) + (par(2)+re(2)) * pow(pow(time(i) - par(3) - re(3),2)+0.1,0.5);
+      }
+      if (model == "bw"){
+        mus(i) = par(0) + re(0) + (par(1) + re(1)) * (time(i) - par(3) - re(3)) + (par(2)+re(2)) * pow(pow(time(i) - par(3) - re(3),2)+0.1,0.5);
+      }
     }
   }
-
+  
   double adjusti;
   if (covariate != "NULL"){
     NumericVector par = as<NumericVector>(rcpmeObj[6]);
@@ -453,17 +461,22 @@ double IndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String score
     NumericVector adjust = data[covariate];
     adjusti = adjust(0);
     for (int i =0; i<lgt; i++){
-      mus(i) = par(0) + par(1)*adjusti + re(0) + (par(2) + par(3)*adjusti + re(1)) * time(i) + (par(4) + par(5)*adjusti + re(2)) * pow(pow(time(i) - par(6) - par(7)*adjusti - re(3),2)+0.1,0.5);
+      if (model == "test"){
+        mus(i) = par(0) + par(1)*adjusti + re(0) + (par(2) + par(3)*adjusti + re(1)) * time(i) + (par(4) + par(5)*adjusti + re(2)) * pow(pow(time(i) - par(6) - par(7)*adjusti - re(3),2)+0.1,0.5);
+      }
+      if (model == "bw"){
+        mus(i) = par(0) + par(1)*adjusti + re(0) + (par(2) + par(3)*adjusti + re(1)) * (time(i) - par(6) - par(7)*adjusti - re(3)) + (par(4) + par(5)*adjusti + re(2)) * pow(pow(time(i) - par(6) - par(7)*adjusti - re(3),2)+0.1,0.5);
+      }
     }
   }
-
+  
   double sdres = as<double>(rcpmeObj[4]);
   String REadjust = as<String>(rcpmeObj[8]);
-
+  
   if ((REadjust == "no") | (covariate == "NULL")){
     estiVarEA = as<arma::mat>(rcpmeObj[5]);
   }
-
+  
   if (REadjust == "yes"){ // CAUTION only fit for 0/1 covariate
     List estiVarEAs = as<List>(rcpmeObj[5]);
     estiVarEA = as<arma::mat>(estiVarEAs[adjusti]);
@@ -481,7 +494,7 @@ double IndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String score
 
 // [[Rcpp::depends("RcppArmadillo")]]
 // [[Rcpp::export]]
-double IndRePostDis2(double re, DataFrame data, List rcpmeObj, String scorevar, String timevar){
+double IndRePostDis2(double re, DataFrame data, List rcpmeObj, String scorevar, String timevar, String model){
   
   // extracting data
   NumericVector scoreAll = data[scorevar];
@@ -501,12 +514,115 @@ double IndRePostDis2(double re, DataFrame data, List rcpmeObj, String scorevar, 
   
   // distribution of Y_i | tau_i and tau_i
   arma::colvec mus(lgt);
-  arma::mat Zk = arma::ones<arma::mat>(lgt,3); Zk.col(1) = time;
+  arma::mat Zk = arma::ones<arma::mat>(lgt,3);
+  if (model == "test") {Zk.col(1) = time;}
+  if (model == "bw") {Zk.col(1) = time - arma::ones<arma::colvec>(lgt)*(par[3]+re);}
   Zk.col(2) = pow(pow(time - arma::ones<arma::colvec>(lgt)*(par[3]+re),2)+0.1,0.5);
   mus = Zk * betas; arma::mat B = Zk * varB * trans(Zk) + pow(sdres,2)*arma::eye<arma::mat>(lgt,lgt);
   bool logtrue = true; double out = dmvnrmarma1d(trans(score),trans(mus),B,logtrue);
   // out = out - 0.5*(log(2*M_PI) + pow(re,2));
   out = out - 0.5*(log(2*M_PI)+pow(re/sdtau,2)) - log(sdtau);
+  
+  return out;
+}
+
+// [[Rcpp::depends("RcppArmadillo")]]
+// [[Rcpp::export]]
+double BivIndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String scorevar1, String scorevar2, String timevar, String model){
+  
+  // extracting data
+  NumericVector score1 = data[scorevar1]; NumericVector score2 = data[scorevar2];
+  LogicalVector indNoNA1 = !is_na(score1); LogicalVector indNoNA2 = !is_na(score2);
+  arma::colvec scoreNoNA1 = as<arma::colvec>(score1[indNoNA1]); arma::colvec scoreNoNA2 = as<arma::colvec>(score2[indNoNA2]);
+  NumericVector time = data[timevar];
+  arma::colvec timeNoNA1 = as<arma::colvec>(time[indNoNA1]); arma::colvec timeNoNA2 = as<arma::colvec>(time[indNoNA2]);
+  
+  int lgt1 = scoreNoNA1.n_elem; int lgt2 = scoreNoNA2.n_elem; int lgt = lgt1 + lgt2;
+  arma::colvec scoreNoNA = join_cols(scoreNoNA1, scoreNoNA2);
+  
+  // extracting estimated parameters
+  arma::mat estiVarEA = as<arma::mat>(rcpmeObj[5]);
+  NumericVector par = as<NumericVector>(rcpmeObj[6]);
+  arma::colvec betas = arma::zeros<arma::colvec>(6);
+  betas(0) = par(0) + re(0); betas(1) = par(1) + re(1);
+  betas(2) = par(2) + re(2); betas(3) = par(12) + re(4);
+  betas(4) = par(13) + re(5); betas(5) = par(14) + re(6);
+  double sigma2_1 = par(4); double sigma2_2 = par(16);
+  arma::mat Sigma1 = sigma2_1 * arma::eye<arma::mat>(lgt1,lgt1);
+  arma::mat Sigma2 = sigma2_2 * arma::eye<arma::mat>(lgt2,lgt2);
+  arma::mat Sigma0 = arma::zeros<arma::mat>(lgt1,lgt2);
+  arma::mat Sigma = join_cols(join_rows(Sigma1,trans(Sigma0)), join_rows(Sigma0,Sigma2));
+  
+  
+  // distribution of Y_i | tau_i and tau_i
+  arma::mat Z = arma::zeros<arma::mat>(lgt,6);
+  arma::mat Z01 = arma::zeros<arma::mat>(lgt1,3);
+  arma::mat Z02 = arma::zeros<arma::mat>(lgt2,3);
+  arma::mat Z1 = arma::ones<arma::mat>(lgt1,3);
+  arma::mat Z2 = arma::ones<arma::mat>(lgt2,3);
+  if (model == "test"){Z1.col(1) = timeNoNA1; Z2.col(1) = timeNoNA2;}
+  if (model == "bw"){Z1.col(1) = timeNoNA1 - arma::ones<arma::colvec>(lgt1)*(par[3]+re(3)); Z2.col(1) = timeNoNA2 - arma::ones<arma::colvec>(lgt2)*(par[15]+re(7));}
+  Z1.col(2) = pow(pow(timeNoNA1 - arma::ones<arma::colvec>(lgt1)*(par[3]+re(3)),2)+0.1,0.5);
+  Z2.col(2) = pow(pow(timeNoNA2 - arma::ones<arma::colvec>(lgt2)*(par[15]+re(7)),2)+0.1,0.5);
+  Z = join_cols(join_rows(Z1,Z01),join_rows(Z02,Z2));
+  arma::colvec mu = arma::zeros<arma::colvec>(lgt); mu = Z * betas;
+  
+  arma::mat mure = arma::zeros<arma::rowvec>(8);
+  bool logtrue = true; double out = dmvnrmarma1d(trans(scoreNoNA), trans(mu), Sigma, logtrue);
+  out = out + dmvnrmarma1d(re, mure, estiVarEA, logtrue);
+  
+  return out;
+}
+
+// [[Rcpp::depends("RcppArmadillo")]]
+// [[Rcpp::export]]
+double BivIndRePostDis2(arma::colvec re, DataFrame data, List rcpmeObj, String scorevar1, String scorevar2, String timevar, String model){
+  
+  // extracting data
+  NumericVector score1 = data[scorevar1]; NumericVector score2 = data[scorevar2];
+  LogicalVector indNoNA1 = !is_na(score1); LogicalVector indNoNA2 = !is_na(score2);
+  arma::colvec scoreNoNA1 = as<arma::colvec>(score1[indNoNA1]); arma::colvec scoreNoNA2 = as<arma::colvec>(score2[indNoNA2]);
+  NumericVector time = data[timevar];
+  arma::colvec timeNoNA1 = as<arma::colvec>(time[indNoNA1]); arma::colvec timeNoNA2 = as<arma::colvec>(time[indNoNA2]);
+  
+  int lgt1 = scoreNoNA1.n_elem; int lgt2 = scoreNoNA2.n_elem; int lgt = lgt1 + lgt2;
+  arma::colvec scoreNoNA = join_cols(scoreNoNA1, scoreNoNA2);
+  
+  // extracting estimated parameters
+  arma::mat estiVarEA = as<arma::mat>(rcpmeObj[5]);
+  arma::mat B12 = estiVarEA.submat(0,4,2,6); arma::mat B21 = estiVarEA.submat(4,0,6,2);
+  arma::mat B1 = estiVarEA.submat(0,0,2,2); arma::mat B2 = estiVarEA.submat(4,4,6,6);
+  arma::mat B = arma::zeros<arma::mat>(6,6); B = join_cols(join_rows(B1,B21),join_rows(B12,B2));
+  NumericVector par = as<NumericVector>(rcpmeObj[6]);
+  IntegerVector idx = IntegerVector::create(0, 1, 2, 12, 13, 14);
+  arma::colvec betas = as<arma::colvec>(par[idx]);
+  double sigma2_1 = par[4]; double sigma2_2 = par[16];
+  arma::mat Sigma1 = sigma2_1 * arma::eye<arma::mat>(lgt1,lgt1);
+  arma::mat Sigma2 = sigma2_2 * arma::eye<arma::mat>(lgt2,lgt2);
+  arma::mat Sigma0 = arma::zeros<arma::mat>(lgt1,lgt2);
+  arma::mat Sigma = join_cols(join_rows(Sigma1,trans(Sigma0)), join_rows(Sigma0,Sigma2));
+  
+  arma::mat mure = arma::zeros<arma::colvec>(2);
+  arma::mat Bre = arma::zeros<arma::mat>(2,2); Bre(0,0) = estiVarEA(3,3); 
+  Bre(0,1) = estiVarEA(3,7); Bre(1,0) = estiVarEA(7,3); Bre(1,1) = estiVarEA(7,7);
+  
+  // distribution of Y_i | tau_i and tau_i
+  arma::mat Z = arma::zeros<arma::mat>(lgt,6);
+  arma::mat Z01 = arma::zeros<arma::mat>(lgt1,3);
+  arma::mat Z02 = arma::zeros<arma::mat>(lgt2,3);
+  arma::mat Z1 = arma::ones<arma::mat>(lgt1,3);
+  arma::mat Z2 = arma::ones<arma::mat>(lgt2,3);
+  if (model == "test"){Z1.col(1) = timeNoNA1; Z2.col(1) = timeNoNA2;}
+  if (model == "bw"){Z1.col(1) = timeNoNA1 - arma::ones<arma::colvec>(lgt1)*(par[3]+re(0)); Z2.col(1) = timeNoNA2 - arma::ones<arma::colvec>(lgt2)*(par[15]+re(1));}
+  Z1.col(2) = pow(pow(timeNoNA1 - arma::ones<arma::colvec>(lgt1)*(par[3]+re(0)),2)+0.1,0.5);
+  Z2.col(2) = pow(pow(timeNoNA2 - arma::ones<arma::colvec>(lgt2)*(par[15]+re(1)),2)+0.1,0.5);
+  Z = join_cols(join_rows(Z1,Z01),join_rows(Z02,Z2));
+  
+  arma::colvec mu = arma::zeros<arma::colvec>(lgt); mu = Z * betas;
+  arma::mat V = arma::zeros<arma::mat>(lgt,lgt); V = (Z * B) * trans(Z) + Sigma;
+  
+  bool logtrue = true; double out = dmvnrmarma1d(trans(scoreNoNA), trans(mu), V, logtrue);
+  out = out + dmvnrmarma1d(trans(re), trans(mure), Bre, logtrue);
   
   return out;
 }
