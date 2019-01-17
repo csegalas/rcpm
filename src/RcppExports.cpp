@@ -6,49 +6,6 @@
 
 using namespace Rcpp;
 
-// rcpparma_hello_world
-arma::mat rcpparma_hello_world();
-RcppExport SEXP _rcpm_rcpparma_hello_world() {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    rcpp_result_gen = Rcpp::wrap(rcpparma_hello_world());
-    return rcpp_result_gen;
-END_RCPP
-}
-// rcpparma_outerproduct
-arma::mat rcpparma_outerproduct(const arma::colvec& x);
-RcppExport SEXP _rcpm_rcpparma_outerproduct(SEXP xSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::colvec& >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(rcpparma_outerproduct(x));
-    return rcpp_result_gen;
-END_RCPP
-}
-// rcpparma_innerproduct
-double rcpparma_innerproduct(const arma::colvec& x);
-RcppExport SEXP _rcpm_rcpparma_innerproduct(SEXP xSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::colvec& >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(rcpparma_innerproduct(x));
-    return rcpp_result_gen;
-END_RCPP
-}
-// rcpparma_bothproducts
-Rcpp::List rcpparma_bothproducts(const arma::colvec& x);
-RcppExport SEXP _rcpm_rcpparma_bothproducts(SEXP xSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::colvec& >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(rcpparma_bothproducts(x));
-    return rcpp_result_gen;
-END_RCPP
-}
 // dn
 double dn(double x, double mu, double sd);
 RcppExport SEXP _rcpm_dn(SEXP xSEXP, SEXP muSEXP, SEXP sdSEXP) {
@@ -116,8 +73,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // lvsblNCgen
-double lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, NumericVector weights, NumericVector nodes, String scorevar, String timevar, String covariate, String REadjust);
-RcppExport SEXP _rcpm_lvsblNCgen(SEXP paramSEXP, SEXP dataSEXP, SEXP nqSEXP, SEXP grpSEXP, SEXP weightsSEXP, SEXP nodesSEXP, SEXP scorevarSEXP, SEXP timevarSEXP, SEXP covariateSEXP, SEXP REadjustSEXP) {
+double lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, NumericVector weights, NumericVector nodes, String scorevar, String timevar, String covariate, String REadjust, String model);
+RcppExport SEXP _rcpm_lvsblNCgen(SEXP paramSEXP, SEXP dataSEXP, SEXP nqSEXP, SEXP grpSEXP, SEXP weightsSEXP, SEXP nodesSEXP, SEXP scorevarSEXP, SEXP timevarSEXP, SEXP covariateSEXP, SEXP REadjustSEXP, SEXP modelSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -131,13 +88,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< String >::type timevar(timevarSEXP);
     Rcpp::traits::input_parameter< String >::type covariate(covariateSEXP);
     Rcpp::traits::input_parameter< String >::type REadjust(REadjustSEXP);
-    rcpp_result_gen = Rcpp::wrap(lvsblNCgen(param, data, nq, grp, weights, nodes, scorevar, timevar, covariate, REadjust));
+    Rcpp::traits::input_parameter< String >::type model(modelSEXP);
+    rcpp_result_gen = Rcpp::wrap(lvsblNCgen(param, data, nq, grp, weights, nodes, scorevar, timevar, covariate, REadjust, model));
     return rcpp_result_gen;
 END_RCPP
 }
 // bilvsblNC
-double bilvsblNC(NumericVector param, List data, int nq, bool adapt, NumericVector grp, NumericVector weights, NumericMatrix nodes, List newnodes, List newweights, String scorevar1, String scorevar2, String timevar, String covariate, String REadjust);
-RcppExport SEXP _rcpm_bilvsblNC(SEXP paramSEXP, SEXP dataSEXP, SEXP nqSEXP, SEXP adaptSEXP, SEXP grpSEXP, SEXP weightsSEXP, SEXP nodesSEXP, SEXP newnodesSEXP, SEXP newweightsSEXP, SEXP scorevar1SEXP, SEXP scorevar2SEXP, SEXP timevarSEXP, SEXP covariateSEXP, SEXP REadjustSEXP) {
+double bilvsblNC(NumericVector param, List data, int nq, bool adapt, NumericVector grp, NumericVector weights, NumericMatrix nodes, List newnodes, List newweights, String scorevar1, String scorevar2, String timevar, String covariate, String REadjust, String model);
+RcppExport SEXP _rcpm_bilvsblNC(SEXP paramSEXP, SEXP dataSEXP, SEXP nqSEXP, SEXP adaptSEXP, SEXP grpSEXP, SEXP weightsSEXP, SEXP nodesSEXP, SEXP newnodesSEXP, SEXP newweightsSEXP, SEXP scorevar1SEXP, SEXP scorevar2SEXP, SEXP timevarSEXP, SEXP covariateSEXP, SEXP REadjustSEXP, SEXP modelSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -155,22 +113,89 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< String >::type timevar(timevarSEXP);
     Rcpp::traits::input_parameter< String >::type covariate(covariateSEXP);
     Rcpp::traits::input_parameter< String >::type REadjust(REadjustSEXP);
-    rcpp_result_gen = Rcpp::wrap(bilvsblNC(param, data, nq, adapt, grp, weights, nodes, newnodes, newweights, scorevar1, scorevar2, timevar, covariate, REadjust));
+    Rcpp::traits::input_parameter< String >::type model(modelSEXP);
+    rcpp_result_gen = Rcpp::wrap(bilvsblNC(param, data, nq, adapt, grp, weights, nodes, newnodes, newweights, scorevar1, scorevar2, timevar, covariate, REadjust, model));
+    return rcpp_result_gen;
+END_RCPP
+}
+// IndRePostDis
+double IndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String scorevar, String timevar, String model);
+RcppExport SEXP _rcpm_IndRePostDis(SEXP reSEXP, SEXP dataSEXP, SEXP rcpmeObjSEXP, SEXP scorevarSEXP, SEXP timevarSEXP, SEXP modelSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::rowvec >::type re(reSEXP);
+    Rcpp::traits::input_parameter< DataFrame >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< List >::type rcpmeObj(rcpmeObjSEXP);
+    Rcpp::traits::input_parameter< String >::type scorevar(scorevarSEXP);
+    Rcpp::traits::input_parameter< String >::type timevar(timevarSEXP);
+    Rcpp::traits::input_parameter< String >::type model(modelSEXP);
+    rcpp_result_gen = Rcpp::wrap(IndRePostDis(re, data, rcpmeObj, scorevar, timevar, model));
+    return rcpp_result_gen;
+END_RCPP
+}
+// IndRePostDis2
+double IndRePostDis2(double re, DataFrame data, List rcpmeObj, String scorevar, String timevar, String model);
+RcppExport SEXP _rcpm_IndRePostDis2(SEXP reSEXP, SEXP dataSEXP, SEXP rcpmeObjSEXP, SEXP scorevarSEXP, SEXP timevarSEXP, SEXP modelSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type re(reSEXP);
+    Rcpp::traits::input_parameter< DataFrame >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< List >::type rcpmeObj(rcpmeObjSEXP);
+    Rcpp::traits::input_parameter< String >::type scorevar(scorevarSEXP);
+    Rcpp::traits::input_parameter< String >::type timevar(timevarSEXP);
+    Rcpp::traits::input_parameter< String >::type model(modelSEXP);
+    rcpp_result_gen = Rcpp::wrap(IndRePostDis2(re, data, rcpmeObj, scorevar, timevar, model));
+    return rcpp_result_gen;
+END_RCPP
+}
+// BivIndRePostDis
+double BivIndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String scorevar1, String scorevar2, String timevar, String model);
+RcppExport SEXP _rcpm_BivIndRePostDis(SEXP reSEXP, SEXP dataSEXP, SEXP rcpmeObjSEXP, SEXP scorevar1SEXP, SEXP scorevar2SEXP, SEXP timevarSEXP, SEXP modelSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::rowvec >::type re(reSEXP);
+    Rcpp::traits::input_parameter< DataFrame >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< List >::type rcpmeObj(rcpmeObjSEXP);
+    Rcpp::traits::input_parameter< String >::type scorevar1(scorevar1SEXP);
+    Rcpp::traits::input_parameter< String >::type scorevar2(scorevar2SEXP);
+    Rcpp::traits::input_parameter< String >::type timevar(timevarSEXP);
+    Rcpp::traits::input_parameter< String >::type model(modelSEXP);
+    rcpp_result_gen = Rcpp::wrap(BivIndRePostDis(re, data, rcpmeObj, scorevar1, scorevar2, timevar, model));
+    return rcpp_result_gen;
+END_RCPP
+}
+// BivIndRePostDis2
+double BivIndRePostDis2(arma::colvec re, DataFrame data, List rcpmeObj, String scorevar1, String scorevar2, String timevar, String model);
+RcppExport SEXP _rcpm_BivIndRePostDis2(SEXP reSEXP, SEXP dataSEXP, SEXP rcpmeObjSEXP, SEXP scorevar1SEXP, SEXP scorevar2SEXP, SEXP timevarSEXP, SEXP modelSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::colvec >::type re(reSEXP);
+    Rcpp::traits::input_parameter< DataFrame >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< List >::type rcpmeObj(rcpmeObjSEXP);
+    Rcpp::traits::input_parameter< String >::type scorevar1(scorevar1SEXP);
+    Rcpp::traits::input_parameter< String >::type scorevar2(scorevar2SEXP);
+    Rcpp::traits::input_parameter< String >::type timevar(timevarSEXP);
+    Rcpp::traits::input_parameter< String >::type model(modelSEXP);
+    rcpp_result_gen = Rcpp::wrap(BivIndRePostDis2(re, data, rcpmeObj, scorevar1, scorevar2, timevar, model));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_rcpm_rcpparma_hello_world", (DL_FUNC) &_rcpm_rcpparma_hello_world, 0},
-    {"_rcpm_rcpparma_outerproduct", (DL_FUNC) &_rcpm_rcpparma_outerproduct, 1},
-    {"_rcpm_rcpparma_innerproduct", (DL_FUNC) &_rcpm_rcpparma_innerproduct, 1},
-    {"_rcpm_rcpparma_bothproducts", (DL_FUNC) &_rcpm_rcpparma_bothproducts, 1},
     {"_rcpm_dn", (DL_FUNC) &_rcpm_dn, 3},
     {"_rcpm_dmvnrmarma", (DL_FUNC) &_rcpm_dmvnrmarma, 4},
     {"_rcpm_dmvnrmarma1d", (DL_FUNC) &_rcpm_dmvnrmarma1d, 4},
     {"_rcpm_ScoreInd", (DL_FUNC) &_rcpm_ScoreInd, 15},
-    {"_rcpm_lvsblNCgen", (DL_FUNC) &_rcpm_lvsblNCgen, 10},
-    {"_rcpm_bilvsblNC", (DL_FUNC) &_rcpm_bilvsblNC, 14},
+    {"_rcpm_lvsblNCgen", (DL_FUNC) &_rcpm_lvsblNCgen, 11},
+    {"_rcpm_bilvsblNC", (DL_FUNC) &_rcpm_bilvsblNC, 15},
+    {"_rcpm_IndRePostDis", (DL_FUNC) &_rcpm_IndRePostDis, 6},
+    {"_rcpm_IndRePostDis2", (DL_FUNC) &_rcpm_IndRePostDis2, 6},
+    {"_rcpm_BivIndRePostDis", (DL_FUNC) &_rcpm_BivIndRePostDis, 7},
+    {"_rcpm_BivIndRePostDis2", (DL_FUNC) &_rcpm_BivIndRePostDis2, 7},
     {NULL, NULL, 0}
 };
 

@@ -561,6 +561,175 @@ bircpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma 
 
 }
 
+#' Bivariate Random Change Point Mixed Model
+#'
+#' @param longdata A dataframe containing the variables used in the formula  \code{formu}
+#' @param formu A formula object describing which variables are to be used. The formula has to be of the following form \code{markervar1 + markervar2 ~ scorevar | grouvpar} for the function to work.
+#' @param covariate An optional string indicating a binary covariate to add on the fixed effects, i.e. intercept, mean slope, difference of slopes and changepoint date. The parameter \code{REadjust} indicates how this covariate influences the random effects variance structure. Default to NULL, i.e. no covariates.
+#' @param REadjust An optional string value indicating how the random effects variance structure depends on \code{covariate}. "no" means that the structure doesn't depend upon \code{covariate}. "prop" indicates that the random effects variance structure is proportionnal according to \code{covariate} value. "yes" indicates that there is two different random effects variance structures, i.e. one for each level of \code{covariate}. Default to "no".
+#' @param gamma A numeric parameter indicating how smooth the trajectory is on the changepoint date. Default to 0.1.
+#' @param nbnodes A numeric parameter indicating how many nodes are to be used for the gaussian quadrature for numerical integration. Default to 10.
+#' @param adapt A boolean indicating whether adaptive gaussian quadrature should be used for numerical integration. Default to FALSE, the adaptive quadrature is still being implemented and TRUE will return an error.
+#' @param param 
+#'
+#' @return The output contains several objects : \code{loglik} is the value of the log-likelihood at the optimum; \code{fixed} contains all fixed parameters estimates, standard errors, CIs, wald test statistic and corresponding pvalue when possible; \code{sdres} the estimated residual error; \code{VarEA} a matrix containing the estimated random effects covariance matrix of the eight random effects: four for each marker with a general correlation structure between them; \code{optpar} the optimal parameters maximizing the log-likelihood; \code{covariate} the covariate declared in the function call; \code{REadjust} the string indicating how random effects structure is handled as declared in the function call, \code{invhessian} the covariance matrix containing all the standard errors and correlations of the parameter estimates;
+#' @export
+#'
+#' @examples
+bircpmeNew <- function(longdata, formu, covariate = "NULL", link1 = "linear", link2 = "linear", REadjust = "no", gamma = 0.1, nbnodes = 10, adapt = FALSE, param = NULL, nproc = 1){
+  
+  # errors handling
+  if (covariate == "NULL" & REadjust != "no") stop("Need a covariate to adjust random effects variance structure.")
+  if (covariate != "NULL" | REadjust != "no") stop("It has not been implemented yet. Sorry for the inconvenience.")
+  if (!is.null(param)){
+    if ((link1 == "linear" & link2 == "linear") & (length(param) != 34)){ stop("Initial parameters vector must be a vector of size 34.")}
+    if ((link1 == "linear" & link2 == "spline") & (length(param) != 41)){ stop("Initial parameters vector must be a vector of size 41.")}
+    if ((link1 == "spline" & link2 == "linear") & (length(param) != 41)){ stop("Initial parameters vector must be a vector of size 41.")}
+    if ((link1 == "spline" & link2 == "spline") & (length(param) != 48)){ stop("Initial parameters vector must be a vector of size 48.")}
+    B <- matrix(c(param[c(6,7,8)], 0, param[c(26,27,28)], 0, 
+                  param[c(7,9,10)], 0, param[c(29,30,31)], 0, 
+                  param[c(8,10,11)], 0, param[c(32,33,34)], 0, 
+                  rep(0,3), param[12], rep(0,3), param[25],
+                  param[c(26,29,32)], 0, param[c(18,19,20)], 0,
+                  param[c(27,30,33)], 0, param[c(19,21,22)], 0,
+                  param[c(28,31,34)], 0, param[c(20,22,23)], 0,
+                  rep(0,3), param[25], rep(0,3), param[24]), byrow = TRUE, nrow = 8)
+    if (class(try(chol(B), silent = TRUE)) == "try-error") stop("Input parameters doesn't definite a positive definite covariance matrix. You may remove the input param option so that the algorithm will automatically chose initial parameters.")
+    param[1:34] <- VarToChol(param[1:34]);remove(B);
+  }
+  
+  # data handling
+  scorevar1 = longdata[,all.vars(formu)[1]]
+  scorevar2 = longdata[,all.vars(formu)[2]]
+  timevar = longdata[,all.vars(formu)[3]]
+  groupvar = longdata[,all.vars(formu)[4]]
+  if (covariate != "NULL") adjustvar = longdata[,covariate]
+  ngroupvar = rep(seq(length(unique(groupvar))), by(longdata,groupvar,function(x){return(dim(x)[[1]])}))
+  longdata <- cbind(longdata, ngroupvar)
+  
+  # estimation of univariate models and initialization
+  print("I need to estimate both univariate models first...")
+  rcpmeObj1 <- rcpmeNew(longdata, as.formula(paste(all.vars(formu)[1], "~", all.vars(formu)[3], "|", all.vars(formu)[4])), covariate = covariate, REadjust = REadjust, gamma = gamma, nbnodes = 20)
+  rcpmeObj2 <- rcpmeNew(longdata, as.formula(paste(all.vars(formu)[2], "~", all.vars(formu)[3], "|", all.vars(formu)[4])), covariate = covariate, REadjust = REadjust, gamma = gamma, nbnodes = 20)
+  
+  if (is.null(param)){
+    param <- as.numeric(c(rcpmeObj1$optpar[1:12], rcpmeObj2$optpar[1:12], rep(0,10))) # en sortie de rcpme j'ai les params de Chol pour le moment donc j'y touche pas
+    if (link1 == "spline" & link2 == "linear") { param <- c(param, rcpmeObj1$optpar[12:19])}
+    if (link1 == "linear" & link2 == "spline") { param <- c(param, rcpmeObj2$optpar[12:19])}
+    if (link1 == "spline" & link2 == "spline") { param <- c(param, rcpmeObj1$optpar[12:19], rcpmeObj2$optpar[12:19])}
+  }
+  
+  # nodes and weights
+  ghcoeff <- gauherm(nbnodes, 2)
+  nodes <- ghcoeff$x
+  weights <- ghcoeff$w
+  
+  # non adaptive
+  if (adapt == FALSE){
+    nodes <- sqrt(2) * nodes
+    weights <- weights / pi
+    newnodes = NULL; newweights = NULL;
+    
+    # optimization
+    print("I can begin the optimization. Please be aware that it can take some time to run.")
+    
+    if (nproc == 1){
+      opt <- marqLevAlg::marqLevAlg(b=param, fn=bilvsblNCNew, data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}), nq=nbnodes, adapt = adapt, grp=ngroupvar, weights=weights,  nodes=nodes, newnodes = newnodes, newweights = newweights, scorevar1 = all.vars(formu)[1], scorevar2 = all.vars(formu)[2], timevar = all.vars(formu)[3], covariate = covariate, REadjust = REadjust)
+    }
+    else {
+      opt <- marqLevAlgParallel::marqLevAlg(b=param, fn=bilvsblNCNew, data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}), nq=nbnodes, adapt = adapt, grp=ngroupvar, weights=weights,  nodes=nodes, newnodes = newnodes, newweights = newweights, scorevar1 = all.vars(formu)[1], scorevar2 = all.vars(formu)[2], timevar = all.vars(formu)[3], covariate = covariate, REadjust = REadjust, nproc = nproc)
+    }
+    
+  }
+  # adaptive
+  if (adapt == TRUE){
+    RE1 <- REestimateNew(rcpmeObj1, longdata, var = TRUE, onlytau = TRUE); RE2 <- REestimateNew(rcpmeObj2, longdata, var = TRUE, onlytau = TRUE);
+    REs <- lapply(mapply(FUN = function(a,b){return(list(c(a$par, b$par, a$var, b$var)))}, RE1, RE2), function(x){return(list("par"=x[c(1,2)], "var"=matrix(c(sqrt(x[3]),0,0,sqrt(x[4])), byrow=TRUE, nrow=2)))})
+    newnodes <- mapply(function(a){return(list(t(apply(nodes,1,function(x){return(sqrt(2)*a[[2]]%*%x+a[[1]])}))))},REs)
+    newweights <- lapply(REs,function(a){return(weights*2*det(a[[2]])*apply(nodes,1,function(x){return(exp(t(x)%*%x))}))})
+    
+    # 1st optimization
+    print("I can begin the optimization. Please be aware that it can take some time to run.")
+    
+    if (nproc == 1){
+      opt <- marqLevAlg::marqLevAlg(b=param, fn=bilvsblNCNew, data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}), nq=nbnodes, adapt = adapt, grp=ngroupvar, weights=weights,  nodes=nodes, newnodes = newnodes, newweights = newweights, scorevar1 = all.vars(formu)[1], scorevar2 = all.vars(formu)[2], timevar = all.vars(formu)[3], covariate = covariate, REadjust = REadjust)
+    }
+    else {
+      opt <- marqLevAlgParallel::marqLevAlg(b=param, fn=bilvsblNCNew, data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}), nq=nbnodes, adapt = adapt, grp=ngroupvar, weights=weights,  nodes=nodes, newnodes = newnodes, newweights = newweights, scorevar1 = all.vars(formu)[1], scorevar2 = all.vars(formu)[2], timevar = all.vars(formu)[3], covariate = covariate, REadjust = REadjust, nproc = nproc)
+    }
+    
+    # # updating gh nodes and weights
+    # print("I am updating nodes and weights of gaussian quadrature.")
+    # hats <- CholToVar(opt$b)
+    # B <- matrix(c(hats[c(6,7,8)], 0, hats[c(26,27,28)], 0,
+    #               hats[c(7,9,10)], 0, hats[c(29,30,31)], 0,
+    #               hats[c(8,10,11)], 0, hats[c(32,33,34)], 0,
+    #               rep(0,3), hats[12], rep(0,3), hats[25],
+    #               hats[c(26,29,32)], 0, hats[c(18,19,20)], 0,
+    #               hats[c(27,30,33)], 0, hats[c(19,21,22)], 0,
+    #               hats[c(28,31,34)], 0, hats[c(20,22,23)], 0,
+    #               rep(0,3), hats[25], rep(0,3), hats[24]), byrow = TRUE, nrow = 8)
+    # esti <- list("call" = NULL, "Loglik" = NULL, "formula" = formu, "fixed" = NULL, "sdres"=NULL, "VarEA" = B, "optpar"= hats, "covariate" = NULL, "REadjust" = NULL, "invhessian" = NULL, "conv" = NULL, "init" = NULL, "niter" = NULL)
+    # RE <- REestimateNew(esti, longdata, var = TRUE, onlytau = TRUE);
+    # RE <- lapply(RE, function(x){return(list("par"=x$par, "var"=matrix(c(x$var[1], x$var[2], x$var[2], x$var[3]), nrow=2)))})
+    # ghcoeff <- gauherm(10, 2)
+    # nodes <- ghcoeff$x
+    # weights <- ghcoeff$w
+    # newnodes <- mapply(function(a){return(list(t(apply(nodes,1,function(x){return(sqrt(2)*a[[2]]%*%x+a[[1]])}))))},RE)
+    # newweights <- lapply(RE,function(a){return(weights*2*det(a[[2]])*apply(nodes,1,function(x){return(exp(t(x)%*%x))}))})
+    # param <- opt$b
+    # 
+    # # 2nd and last optimization
+    # print("I begin the last optimization.")
+    # if (nproc == 1){
+    #   opt <- marqLevAlg::marqLevAlg(b=param, fn=bilvsblNCNew, data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}), nq=nbnodes, adapt = adapt, grp=ngroupvar, weights=weights,  nodes=nodes, newnodes = newnodes, newweights = newweights, scorevar1 = all.vars(formu)[1], scorevar2 = all.vars(formu)[2], timevar = all.vars(formu)[3], covariate = covariate, REadjust = REadjust)
+    # }
+    # else {
+    #   opt <- marqLevAlgParallel::marqLevAlg(b=param, fn=bilvsblNCNew, data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}), nq=nbnodes, adapt = adapt, grp=ngroupvar, weights=weights,  nodes=nodes, newnodes = newnodes, newweights = newweights, scorevar1 = all.vars(formu)[1], scorevar2 = all.vars(formu)[2], timevar = all.vars(formu)[3], covariate = covariate, REadjust = REadjust, nproc = nproc)
+    # }
+    
+  }
+  
+  
+  
+  
+  # OUT : fixed parameters ===========================================================================================
+  if (covariate == "NULL"){
+    invhessian <- CholToVarCovMatrix(opt) # JE PEUX LAISSER OU REMETTRE LE INVHESSIAN OBTENU A PARTIR DE OPT$V CAR ON SE FICHE DES IC SUR LES PARAMS DE VARIANCE (SAUF DANS LES SIMUS) COMME CA PAS DE PROBLEME DE SOUPLESSE SI PLUS D'EA DANS LA DEF DU MODELE ::
+    
+    # invhessian <- diag(34)
+    # invhessian[upper.tri(invhessian, diag=TRUE)] <- opt$v
+    # invhessian <- invhessian + t(invhessian) - diag(diag(invhessian)) # si je ne remets que cette partie par contre il faut enlever le invhessian en sortie car il est faux !!
+    
+    hats <- CholToVar(opt$b)
+    
+    tab <- cbind(hats[c(1,2,3,4)],sqrt(diag(invhessian)[c(1,2,3,4)]))
+    tab <- cbind(tab, tab[,1]-1.96*tab[,2],tab[,1]+1.96*tab[,2])
+    tab <- cbind(tab, hats[c(1,2,3,4)+12],sqrt(diag(invhessian)[c(1,2,3,4)+12]))
+    tab <- cbind(tab, tab[,5]-1.96*tab[,6],tab[,5]+1.96*tab[,6])
+    covs <- c(invhessian[1,13], invhessian[2,14], invhessian[3,15], invhessian[4,16])
+    tab <- cbind(tab, sqrt((tab[,1]-tab[,5])**2/(tab[,2]**2+tab[,6]**2-2*covs)), 1-pchisq(sqrt((tab[,1]-tab[,5])**2/(tab[,2]**2+tab[,6]**2-2*covs)), df=1))
+    rownames(tab) <- c("beta0", "beta1", "beta2", "mutau")
+    colnames(tab) <-  c(paste(all.vars(formu)[1],":", c("par", "se(par)", "ICinf", "ICsup"),sep = ""), paste(all.vars(formu)[2],":", c("par", "se(par)", "ICinf", "ICsup"),sep = ""), "Wald stat.", "pvalue")
+  }
+  
+  # OUT : variance parameters ========================================================================================
+  if (REadjust == "no" | covariate == "NULL"){
+    sdres <- sqrt(hats[c(5,17)]); names(sdres) = c(all.vars(formu)[1],all.vars(formu)[2]);
+    B <- matrix(c(hats[c(6,7,8)], 0, hats[c(26,27,28)], 0,
+                  hats[c(7,9,10)], 0, hats[c(29,30,31)], 0,
+                  hats[c(8,10,11)], 0, hats[c(32,33,34)], 0,
+                  rep(0,3), hats[12], rep(0,3), hats[25],
+                  hats[c(26,29,32)], 0, hats[c(18,19,20)], 0,
+                  hats[c(27,30,33)], 0, hats[c(19,21,22)], 0,
+                  hats[c(28,31,34)], 0, hats[c(20,22,23)], 0,
+                  rep(0,3), hats[25], rep(0,3), hats[24]), byrow = TRUE, nrow = 8)
+  }
+  
+  return(list("call" = as.list(match.call()), "Loglik" = opt$fn.value, "formula" = formu, "fixed" = round(tab,3), "sdres"=sdres, "VarEA" = B, optpar= hats, "covariate" = covariate, "REadjust" = REadjust, "invhessian" = invhessian, "conv" = opt$istop, "init" = CholToVar(param), "niter" = opt$iter))
+  
+}
+
 
 #' Individual prediction based on a \code{rcpme} model
 #'

@@ -221,10 +221,11 @@ double lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, Num
         Betas(0) = Beta0; Betas(1) = Beta1; Betas(2)=Beta2;
         
         arma::mat Zk = arma::ones<arma::mat>(lgt,3);
-        Zk.col(1) = timeNoNA;
+        if (model == "test"){Zk.col(1) = timeNoNA;}
         arma::colvec muk = arma::zeros<arma::colvec>(lgt);
         arma::mat Vk = arma::zeros<arma::mat>(lgt,lgt);
         for (int k = 0; k < nq; ++k){
+          if (model == "bw"){Zk.col(1) = timeNoNA - arma::ones<arma::colvec>(lgt)*(tau+Utau*nodes(k));}
           Zk.col(2) = pow(pow(timeNoNA - arma::ones<arma::colvec>(lgt)*(tau+Utau*nodes(k)),2)+0.1,0.5);
           muk = Zk * Betas;
           Vk = (Zk * B) * trans(Zk) + pow(sigma,2) * arma::eye<arma::mat>(lgt,lgt); 

@@ -5,7 +5,7 @@
 \title{Random Change Point Mixed Model}
 \usage{
 rcpme(longdata, formu, covariate = "NULL", REadjust = "no",
-  gamma = 0.1, nbnodes = 10, param = NULL)
+  gamma = 0.1, nbnodes = 10, param = NULL, model = "test")
 }
 \arguments{
 \item{longdata}{A dataframe containing the variables used in the formula  \code{formu}}
