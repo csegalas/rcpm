@@ -447,7 +447,7 @@ REestimate <- function(rcpmeObj, longdata, var = FALSE, onlytau = FALSE){
 #' @export
 #'
 #' @examples
-bircpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 0.1, nbnodes = 10, adapt = FALSE, param = NULL, nproc = 1, model = "test", link1 = "linear", link2 = "linear"){
+bircpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 0.1, nbnodes = 10, adapt = FALSE, param = NULL, nproc = 1, model = "test", link1 = "linear", link2 = "linear", twostep = FALSE){
   
   # errors handling
   if (covariate == "NULL" & REadjust != "no") stop("Need a covariate to adjust random effects variance structure.")
@@ -482,6 +482,7 @@ bircpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma 
   print("I need to estimate both univariate models first...")
   rcpmeObj1 <- rcpme(longdata, as.formula(paste(all.vars(formu)[1], "~", all.vars(formu)[3], "|", all.vars(formu)[4])), covariate = covariate, REadjust = REadjust, gamma = gamma, nbnodes = 20, model = model, link = link1)
   rcpmeObj2 <- rcpme(longdata, as.formula(paste(all.vars(formu)[2], "~", all.vars(formu)[3], "|", all.vars(formu)[4])), covariate = covariate, REadjust = REadjust, gamma = gamma, nbnodes = 20, model = model, link = link2)
+  if ((rcpmeObj1$conv > 1) | (rcpmeObj2$conv > 1)) warning("One of the two univariate model did not converge...")
   
   # initialization
   if (is.null(param)){
@@ -534,36 +535,38 @@ bircpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma 
       opt <- marqLevAlgParallel::marqLevAlg(b=param, fn=bilvsblNC, data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}), nq=nbnodes, adapt = adapt, grp=ngroupvar, weights=weights,  nodes=nodes, newnodes = newnodes, newweights = newweights, scorevar1 = all.vars(formu)[1], scorevar2 = all.vars(formu)[2], timevar = all.vars(formu)[3], covariate = covariate, REadjust = REadjust, model = model, link1 = link1, link2 = link2, objtrans1 = objtrans1, objtrans2 = objtrans2, gamma = gamma, nproc = nproc)
     }
     
-    # # updating gh nodes and weights
-    # print("I am updating nodes and weights of gaussian quadrature.")
-    # hats <- CholToVar(opt$b)
-    # B <- matrix(c(hats[c(6,7,8)], 0, hats[c(26,27,28)], 0,
-    #               hats[c(7,9,10)], 0, hats[c(29,30,31)], 0,
-    #               hats[c(8,10,11)], 0, hats[c(32,33,34)], 0,
-    #               rep(0,3), hats[12], rep(0,3), hats[25],
-    #               hats[c(26,29,32)], 0, hats[c(18,19,20)], 0,
-    #               hats[c(27,30,33)], 0, hats[c(19,21,22)], 0,
-    #               hats[c(28,31,34)], 0, hats[c(20,22,23)], 0,
-    #               rep(0,3), hats[25], rep(0,3), hats[24]), byrow = TRUE, nrow = 8)
-    # esti <- list("call" = NULL, "Loglik" = NULL, "formula" = formu, "fixed" = NULL, "sdres"=NULL, "VarEA" = B, "optpar"= hats, "covariate" = NULL, "REadjust" = NULL, "invhessian" = NULL, "conv" = NULL, "init" = NULL, "niter" = NULL, "model" = model, "gamma" = gamma)
-    # RE <- REestimate(esti, longdata, var = TRUE, onlytau = TRUE);
-    # RE <- lapply(RE, function(x){return(list("par"=x$par, "var"=chol(matrix(c(x$var[1], x$var[2], x$var[2], x$var[3]), nrow=2))))})
-    # ghcoeff <- gauherm(10, 2)
-    # nodes <- ghcoeff$x
-    # weights <- ghcoeff$w
-    # newnodes <- mapply(function(a){return(list(t(apply(nodes,1,function(x){return(sqrt(2)*a[[2]]%*%x+a[[1]])}))))},RE)
-    # newweights <- lapply(RE,function(a){return(weights*2*det(a[[2]])*apply(nodes,1,function(x){return(exp(t(x)%*%x))}))})
-    # param <- opt$b
-    # 
-    # # 2nd and last optimization
-    # print("I begin the last optimization.")
-    # if (nproc == 1){
-    #   opt <- marqLevAlg::marqLevAlg(b=param, fn=bilvsblNC, data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}), nq=nbnodes, adapt = adapt, grp=ngroupvar, weights=weights,  nodes=nodes, newnodes = newnodes, newweights = newweights, scorevar1 = all.vars(formu)[1], scorevar2 = all.vars(formu)[2], timevar = all.vars(formu)[3], covariate = covariate, REadjust = REadjust, model = model, link1 = link1, link2 = link2, objtrans1 = objtrans1, objtrans2 = objtrans2, gamma = gamma)
-    #   
-    # }
-    # else {
-    #   opt <- marqLevAlgParallel::marqLevAlg(b=param, fn=bilvsblNC, data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}), nq=nbnodes, adapt = adapt, grp=ngroupvar, weights=weights,  nodes=nodes, newnodes = newnodes, newweights = newweights, scorevar1 = all.vars(formu)[1], scorevar2 = all.vars(formu)[2], timevar = all.vars(formu)[3], covariate = covariate, REadjust = REadjust, model = model, link1 = link1, link2 = link2, objtrans1 = objtrans1, objtrans2 = objtrans2, gamma = gamma, nproc = nproc)
-    # }
+    if (twostep == TRUE){
+      # updating gh nodes and weights
+      print("I am updating nodes and weights of gaussian quadrature.")
+      hats <- CholToVar(opt$b)
+      B <- matrix(c(hats[c(rk1+1,rk1+2,rk1+3)], 0, hats[c(rk2+9,rk2+10,rk2+11)], 0,
+                    hats[c(rk1+2,rk1+4,rk1+5)], 0, hats[c(rk2+12,rk2+13,rk2+14)], 0,
+                    hats[c(rk1+3,rk1+5,rk1+6)], 0, hats[c(rk2+15,rk2+16,rk2+17)], 0,
+                    rep(0,3), hats[rk1+7], rep(0,3), hats[rk2+7],
+                    hats[c(rk2+9,rk2+12,rk2+15)], 0, hats[c(rk2+1,rk2+2,rk2+3)], 0,
+                    hats[c(rk2+10,rk2+13,rk2+16)], 0, hats[c(rk2+2,rk2+4,rk2+5)], 0,
+                    hats[c(rk2+11,rk2+14,rk2+17)], 0, hats[c(rk2+3,rk2+5,rk2+6)], 0,
+                    rep(0,3), hats[rk2+7], rep(0,3), hats[rk2+7]), byrow = TRUE, nrow = 8)
+      esti <- list("call" = NULL, "Loglik" = NULL, "formula" = formu, "fixed" = NULL, "sdres"=NULL, "VarEA" = B, "optpar"= hats, "covariate" = NULL, "REadjust" = NULL, "invhessian" = NULL, "conv" = NULL, "init" = NULL, "niter" = NULL, "model" = model, "gamma" = gamma)
+      RE <- REestimate(esti, longdata, var = TRUE, onlytau = TRUE);
+      RE <- lapply(RE, function(x){return(list("par"=x$par, "var"=chol(matrix(c(x$var[1], x$var[2], x$var[2], x$var[3]), nrow=2))))})
+      ghcoeff <- gauherm(10, 2)
+      nodes <- ghcoeff$x
+      weights <- ghcoeff$w
+      newnodes <- mapply(function(a){return(list(t(apply(nodes,1,function(x){return(sqrt(2)*a[[2]]%*%x+a[[1]])}))))},RE)
+      newweights <- lapply(RE,function(a){return(weights*2*det(a[[2]])*apply(nodes,1,function(x){return(exp(t(x)%*%x))}))})
+      param <- opt$b
+      
+      # 2nd and last optimization
+      print("I begin the last optimization.")
+      if (nproc == 1){
+        opt <- marqLevAlg::marqLevAlg(b=param, fn=bilvsblNC, data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}), nq=nbnodes, adapt = adapt, grp=ngroupvar, weights=weights,  nodes=nodes, newnodes = newnodes, newweights = newweights, scorevar1 = all.vars(formu)[1], scorevar2 = all.vars(formu)[2], timevar = all.vars(formu)[3], covariate = covariate, REadjust = REadjust, model = model, link1 = link1, link2 = link2, objtrans1 = objtrans1, objtrans2 = objtrans2, gamma = gamma)
+        
+      }
+      else {
+        opt <- marqLevAlgParallel::marqLevAlg(b=param, fn=bilvsblNC, data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}), nq=nbnodes, adapt = adapt, grp=ngroupvar, weights=weights,  nodes=nodes, newnodes = newnodes, newweights = newweights, scorevar1 = all.vars(formu)[1], scorevar2 = all.vars(formu)[2], timevar = all.vars(formu)[3], covariate = covariate, REadjust = REadjust, model = model, link1 = link1, link2 = link2, objtrans1 = objtrans1, objtrans2 = objtrans2, gamma = gamma, nproc = nproc)
+      }
+    }
   }
   
 
@@ -603,7 +606,7 @@ bircpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma 
                   hats[c(rk2+9,rk2+12,rk2+15)], 0, hats[c(rk2+1,rk2+2,rk2+3)], 0,
                   hats[c(rk2+10,rk2+13,rk2+16)], 0, hats[c(rk2+2,rk2+4,rk2+5)], 0,
                   hats[c(rk2+11,rk2+14,rk2+17)], 0, hats[c(rk2+3,rk2+5,rk2+6)], 0,
-                  rep(0,3), hats[rk2+7], rep(0,3), hats[rk1+7]), byrow = TRUE, nrow = 8)
+                  rep(0,3), hats[rk2+7], rep(0,3), hats[rk2+7]), byrow = TRUE, nrow = 8)
   }
   
   paramSpl <- NULL
