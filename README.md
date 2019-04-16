@@ -44,7 +44,7 @@ other).
 It is interesting to look at the all longitudinal trajectory according
 to educational level
 
-![](Readme_files/figure-markdown_strict/unnamed-chunk-2-1.png)
+![](Readme_files/figure-markdown_strict/unnamed-chunk-2-1.eps)
 
 Testing the existence of the random changepoint
 -----------------------------------------------
@@ -245,4 +245,4 @@ random changepoint model. This is done with the `rcpme` function.
 
     ## Warning: Removed 5 rows containing missing values (geom_point).
 
-![](Readme_files/figure-markdown_strict/unnamed-chunk-7-1.png)
+![](Readme_files/figure-markdown_strict/unnamed-chunk-7-1.eps)
