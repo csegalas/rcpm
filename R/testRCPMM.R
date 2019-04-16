@@ -139,17 +139,22 @@ Score <- function(tau,estis,estiVarEA,longdata,newnodes,newweights,nbnodes,nd,gr
 #'
 #' Realizes the supremum score test on longdata according to formu.
 #'
-#' @param longdata Longitudinal data 
-#' @param formu A formula indicating which variables from longdata should be used. It must have the following form : markervar ~ timevar | groupvar
+#' @param longdata Longitudinal dataset containing all variables used in the formula \code{formu}
+#' @param formu A formula object describing which variables are to be used. The formula has to be of the following form \code{markervar ~ scorevar | groupvar} for the function to work.
 #' @param gamma A smoothing parameter for the transition on the changepoint date. 0.1 by default.
-#' @param nbnodes Number of adaptive quadrature nodes used to compute the integrals. 5 by default.
+#' @param nbnodes Number of pseudo-adaptive gaussian quadrature nodes used to compute the numeric integrals. 5 by default.
 #' @param nbpert Number of perturbations used to compute the empirical p-value. 500 by default.
+#' @param covariate An eventual covariate dependence of all the parameters in the model. Not implemented yet.
 #'
-#' @return The function returns a list with the computed empirical p-value, the nbpert perturbed test statistics and the observed test statistic.
+#' @return The function returns a list with the computed empirical p-value and the observed test statistic.
 #' @export
 #'
 #' @examples
 testRCPMM <- function(longdata, formu, covariate = NULL, gamma = 0.1, nbnodes = 5, nbpert = 500){
+  
+  if(is.null(longdata)){stop("I can not do my job if a dataset is not provided in the longdata argument of the function.")}
+  if(is.null(formu)){stop("Please indicate me in the formu argument which variables are to be used.")}
+  if(!is.null(formu)){stop("I can not deal with covariate at the moment. I am sorry for the inconvenience.")}
   
   scorevar = longdata[,all.vars(formu)[1]]
   timevar = longdata[,all.vars(formu)[2]]
@@ -206,6 +211,6 @@ testRCPMM <- function(longdata, formu, covariate = NULL, gamma = 0.1, nbnodes = 
     opt <- optim(par=tau, fn=Score, estis=estis,estiVarEA=estiVarEA,longdata=longdata,newnodes=newnodes,newweights=newweights,nbnodes=nbnodes,nd=3,groupvar=ngroupvar, MATmus = MATmus, formu = formu, pert=pert, method=c("L-BFGS-B"), control=list(maxit=250, factr = 0.001, pgtol=0.001)) # optim : reltol001
     res[i] <- opt$value
   }
-    
-  return(list("p-value" = mean(-res > -optobs$value), "pertus" = res, "obs. stat" = optobs$value))
+  
+  return(list("empirical p-value" = mean(-res > -optobs$value), "obs. stat" = optobs$value))
 }
