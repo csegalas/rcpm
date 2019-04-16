@@ -483,7 +483,7 @@ double bilvsblNC(NumericVector param, List data, int nq, bool adapt, NumericVect
 
 // [[Rcpp::depends("RcppArmadillo")]]
 // [[Rcpp::export]]
-double IndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String scorevar, String timevar, String model, double gamma){
+double IndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String scorevar, String timevar, String model, double gamma, String link){
   
   NumericVector scoreAll = data[scorevar];
   NumericVector timeAll = data[timevar];
@@ -518,7 +518,8 @@ double IndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String score
   double adjusti;
   if (covariate != "NULL"){
     NumericVector par = as<NumericVector>(rcpmeObj[6]);
-    IntegerVector idx = IntegerVector::create(0, 12, 1, 13, 2, 14, 3, 15);
+    int rk1 = 3 + (link == "linear"); 
+    IntegerVector idx = IntegerVector::create(0, rk1+8, 1, rk1+9, 2, rk1+10, 3, rk1+11);
     NumericVector betas = par[idx];
     adjust = data[covariate];
     adjusti = adjust(0);
@@ -532,7 +533,7 @@ double IndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String score
     }
   }
 
-  double sdres = as<double>(rcpmeObj[4]);
+  double sdres = as<double>(rcpmeObj[4]); // return 1 if splines
   String REadjust = as<String>(rcpmeObj[8]);
 
   if ((REadjust == "no") | (covariate == "NULL")){
@@ -556,7 +557,7 @@ double IndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String score
 
 // [[Rcpp::depends("RcppArmadillo")]]
 // [[Rcpp::export]]
-double IndRePostDis2(double re, DataFrame data, List rcpmeObj, String scorevar, String timevar, String model, double gamma){
+double IndRePostDis2(double re, DataFrame data, List rcpmeObj, String scorevar, String timevar, String model, double gamma, String link){
   
   // extracting data
   NumericVector scoreAll = data[scorevar];
@@ -572,7 +573,7 @@ double IndRePostDis2(double re, DataFrame data, List rcpmeObj, String scorevar, 
   NumericVector par = as<NumericVector>(rcpmeObj[6]);
   IntegerVector idx = IntegerVector::create(0, 1, 2);
   arma::colvec betas = as<arma::colvec>(par[idx]);
-  double sdtau = sqrt(estiVarEA(3,3)); double sdres = par[4];
+  double sdtau = sqrt(estiVarEA(3,3)); double sdres = as<double>(rcpmeObj[4]);
   
   // distribution of Y_i | tau_i and tau_i
   arma::colvec mus(lgt);
@@ -590,7 +591,13 @@ double IndRePostDis2(double re, DataFrame data, List rcpmeObj, String scorevar, 
 
 // [[Rcpp::depends("RcppArmadillo")]]
 // [[Rcpp::export]]
-double BivIndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String scorevar1, String scorevar2, String timevar, String model, double gamma){
+double BivIndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String scorevar1, String scorevar2, String timevar, String model, double gamma, String link1, String link2){
+  
+  // index
+  int rk1 = 4 - (link1 == "splines"); 
+  int rk2 = rk1 + 12 - (link2 == "splines"); 
+  int rk3 = rk2 + 17; 
+  int rk4 = rk3 + (link1 == "splines")*5;
   
   // extracting data
   NumericVector score1 = data[scorevar1]; NumericVector score2 = data[scorevar2];
@@ -606,10 +613,12 @@ double BivIndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String sc
   arma::mat estiVarEA = as<arma::mat>(rcpmeObj[5]);
   NumericVector par = as<NumericVector>(rcpmeObj[6]);
   arma::colvec betas = arma::zeros<arma::colvec>(6);
+  
   betas(0) = par(0) + re(0); betas(1) = par(1) + re(1);
-  betas(2) = par(2) + re(2); betas(3) = par(12) + re(4);
-  betas(4) = par(13) + re(5); betas(5) = par(14) + re(6);
-  double sigma2_1 = par(4); double sigma2_2 = par(16);
+  betas(2) = par(2) + re(2); betas(3) = par(rk1+8) + re(4);
+  betas(4) = par(rk1+9) + re(5); betas(5) = par(rk1+10) + re(6);
+  arma::colvec sigma2 = as<arma::colvec>(rcpmeObj[4]);
+  double sigma2_1 = sigma2(0); double sigma2_2 = sigma2(1);
   arma::mat Sigma1 = sigma2_1 * arma::eye<arma::mat>(lgt1,lgt1);
   arma::mat Sigma2 = sigma2_2 * arma::eye<arma::mat>(lgt2,lgt2);
   arma::mat Sigma0 = arma::zeros<arma::mat>(lgt1,lgt2);
@@ -625,7 +634,7 @@ double BivIndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String sc
   if (model == "test"){Z1.col(1) = timeNoNA1; Z2.col(1) = timeNoNA2;}
   if (model == "bw"){Z1.col(1) = timeNoNA1 - arma::ones<arma::colvec>(lgt1)*(par[3]+re(3)); Z2.col(1) = timeNoNA2 - arma::ones<arma::colvec>(lgt2)*(par[15]+re(7));}
   Z1.col(2) = pow(pow(timeNoNA1 - arma::ones<arma::colvec>(lgt1)*(par[3]+re(3)),2)+gamma,0.5);
-  Z2.col(2) = pow(pow(timeNoNA2 - arma::ones<arma::colvec>(lgt2)*(par[15]+re(7)),2)+gamma,0.5);
+  Z2.col(2) = pow(pow(timeNoNA2 - arma::ones<arma::colvec>(lgt2)*(par[rk1+11]+re(7)),2)+gamma,0.5);
   Z = join_cols(join_rows(Z1,Z01),join_rows(Z02,Z2));
   arma::colvec mu = arma::zeros<arma::colvec>(lgt); mu = Z * betas;
   
