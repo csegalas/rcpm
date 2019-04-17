@@ -139,7 +139,7 @@ Score <- function(tau,estis,estiVarEA,longdata,newnodes,newweights,nbnodes,nd,gr
 #'
 #' Realizes the supremum score test on longdata according to formu.
 #'
-#' @param longdata Longitudinal dataset containing all variables used in the formula \code{formu}
+#' @param longdata A longitudinal dataset containing all variables used in the formula \code{formu}
 #' @param formu A formula object describing which variables are to be used. The formula has to be of the following form \code{markervar ~ scorevar | groupvar} for the function to work.
 #' @param gamma A smoothing parameter for the transition on the changepoint date. 0.1 by default.
 #' @param nbnodes Number of pseudo-adaptive gaussian quadrature nodes used to compute the numeric integrals. 5 by default.
@@ -154,7 +154,7 @@ testRCPMM <- function(longdata, formu, covariate = NULL, gamma = 0.1, nbnodes = 
   
   if(is.null(longdata)){stop("I can not do my job if a dataset is not provided in the longdata argument of the function.")}
   if(is.null(formu)){stop("Please indicate me in the formu argument which variables are to be used.")}
-  if(!is.null(formu)){stop("I can not deal with covariate at the moment. I am sorry for the inconvenience.")}
+  if(!is.null(covariate)){stop("I can not deal with covariate at the moment. I am sorry for the inconvenience.")}
   
   scorevar = longdata[,all.vars(formu)[1]]
   timevar = longdata[,all.vars(formu)[2]]

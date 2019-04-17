@@ -255,17 +255,22 @@ transY <- function(rcpmeObj, longdata){
 
 #' Random Change Point Mixed Model
 #'
-#' @param longdata A dataframe containing the variables used in the formula  \code{formu}
-#' @param formu A formula object describing which variables are to be used. The formula has to be of the following form \code{markervar ~ scorevar | grouvpar} for the function to work.
+#' @param longdata A longitudinal dataset containing all variables used in the formula \code{formu}
+#' @param formu A formula object describing which variables are to be used. The formula has to be of the following form \code{markervar ~ scorevar | groupvar} for the function to work.
 #' @param covariate An optional string indicating a binary covariate to add on the fixed effects, i.e. intercept, mean slope, difference of slopes and changepoint date. The parameter \code{REadjust} indicates how this covariate influences the random effects variance structure. Default to NULL, i.e. no covariates.
 #' @param REadjust An optional string value indicating how the random effects variance structure depends on \code{covariate}. "no" means that the structure doesn't depend upon \code{covariate}. "prop" indicates that the random effects variance structure is proportionnal according to \code{covariate} value. "yes" indicates that there is two different random effects variance structures, i.e. one for each level of \code{covariate}. Default to "no".
-#' @param gamma A numeric parameter indicating how smooth the trajectory is on the changepoint date. Default to 0.1.
+#' @param gamma A numeric parameter indicating how smooth the trajectory is on the changepoint date. It should be small according to the time variable scale. Default to 0.1.
 #' @param nbnodes A numeric parameter indicating how many nodes are to be used for the gaussian quadrature for numerical integration. Default to 10.
+#' @param param An optional vector parameter that contains initial parameter for the optimization of the log-likelihood. Default to NULL.
+#' @param model An optional string indicating which formulation of the random changepoint exists. The first is `test` which is used by the `testRCPMM` function, the second is `bw` for the Bacon-Watts formulation of the model. When used for estimation purpose, you should always use `bw` which has better interpretability properties. Default to `bw`
+#' @param link An optional string indicating which link function is to be used. This link function is used to deal with non-gaussian data. With `link=splines` the model estimates an appropriate I-spline link function `g` so that `g(scorevar)` is a gaussian variable. If data is already gaussian, you can chose `link=linear` so that no link function will be estimated. Default to `linear`.
 #'
-#' @return The output contains several objects : \code{loglik} is the value of the log-likelihood at the optimum; \code{fixed} contains all fixed parameters estimates, standard errors, CIs, wald test statistic and corresponding pvalue when possible; \code{sdres} the estimated residual error; \code{VarEA} a 4x4 matrix or a list of 4x4 matrices - if there is some covariate for example - containing the estimated random effects covariance matrix; \code{optpar} the optimal parameters maximizing the log-likelihood; \code{covariate} the covariate declared in the function call; \code{REadjust} the string indicating how random effects structure is handled as declared in the function call, \code{invhessian} the covariance matrix containing all the standard errors and correlations of the parameter estimates;
+#' @return The output contains several objects : \code{call} is the function call; \code{loglik} is the value of the log-likelihood at the optimum; \code{formula} is the formula describing which variables are used in the model; \code{fixed} contains all fixed parameters estimates, standard errors, CIs, wald test statistic and corresponding pvalue when possible; \code{sdres} the estimated residual error; \code{VarEA} a 4x4 matrix or a list of 4x4 matrices - if there is some covariate for example - containing the estimated random effects covariance matrix; \code{optpar} the optimal parameters maximizing the log-likelihood; \code{covariate} the covariate declared in the function call; \code{REadjust} the string indicating how random effects structure is handled as declared in the function call, \code{invhessian} the covariance matrix containing all the standard errors and correlations of the parameter estimates; \code{conv} an index of successful convergance, equals to 1 if success; \code{init} the initial values vector; \code{model} the model used during estimation; \code{gamma} the value of gamma used during estimation; \code{link} the link function used during estimation.
 #' @export
 #'
 #' @examples
+
+
 rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 0.1, nbnodes = 10, param = NULL, model = "test", link = "linear"){
   
   if (covariate == "NULL" & REadjust != "no") stop("Need a covariate to adjust random effects variance structure.")
@@ -460,7 +465,18 @@ REestimate <- function(rcpmeObj, longdata, var = FALSE, onlytau = FALSE){
   
     if (onlytau == FALSE){
       re <- rep(0,8)
-      if (var == FALSE) {return(by(longdata,longdata[,groupvar],function(x){if(sum(!is.na(x[,c(scorevar1, scorevar2)])!=0)) {opt<-marqLevAlg(b = re, fn = BivIndRePostDis, rcpmeObj = rcpmeObj, data = x, scorevar1 = scorevar1, scorevar2 = scorevar2, timevar = timevar, model = model, gamma = gamma, link1 = link1, link2 = link2);if(opt$istop == 1) {return("par"=opt$b);} else {return("par"=re);}} else {return("par"=re);}}))}
+      if (var == FALSE) {return(by(longdata,longdata[,groupvar],function(x){
+        if(sum(!is.na(x[,c(scorevar1, scorevar2)])!=0)) {
+          opt<-marqLevAlg(b = re, fn = BivIndRePostDis, rcpmeObj = rcpmeObj, data = x, scorevar1 = scorevar1, scorevar2 = scorevar2, timevar = timevar, model = model, gamma = gamma, link1 = link1, link2 = link2);if(opt$istop == 1) {return("par"=opt$b);} else {return("par"=re);}
+        }
+        if(sum(!is.na(x[,scorevar1])==0)) {
+          opt<-marqLevAlg(b = re, fn = IndRePostDis, rcpmeObj = rcpmeObj, data = x, scorevar = scorevar2, timevar = timevar, model = model, gamma = gamma, link = link2);if(opt$istop == 1) {return("par"=c(opt$b,rep(0,4)));} else {return("par"=rep(0,8));}
+        }
+        if(sum(!is.na(x[,scorevar2])==0)) {
+          opt<-marqLevAlg(b = re, fn = IndRePostDis, rcpmeObj = rcpmeObj, data = x, scorevar = scorevar1, timevar = timevar, model = model, gamma = gamma, link = link1);if(opt$istop == 1) {return("par"=c(opt$b,rep(0,4)));} else {return("par"=rep(0,8));}
+        }
+        else {return("par"=re);}
+      }))}
       if (var == TRUE) {return(by(longdata,longdata[,groupvar],function(x){if(sum(!is.na(x[,c(scorevar1, scorevar2)])!=0)) {opt<-marqLevAlg(b = re, fn = BivIndRePostDis, rcpmeObj = rcpmeObj, data = x, scorevar1 = scorevar1, scorevar2 = scorevar2, timevar = timevar, model = model, gamma = gamma, link1 = link1, link2 = link2);if(opt$istop == 1) {return(list("par"=opt$b,"var"=matrix(c(opt$v[c(1,2,4,7,2,3,5,8,4,5,6,9,7,8,9,10)]), nrow = 4, byrow=TRUE)));} else {return(list("par"=re, "var"=diag(4)))}} else {return(list("par"=re, "var"=diag(4)))}}))}
     }
     
