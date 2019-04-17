@@ -17,27 +17,31 @@ ScoreInd <- function(data, Beta0, Beta1, sigma, mutau, sigmatau, B, MATmus, nbno
     .Call('_rcpm_ScoreInd', PACKAGE = 'rcpm', data, Beta0, Beta1, sigma, mutau, sigmatau, B, MATmus, nbnodes, nd, newnodes, newweights, scorevar, timevar, groupvar)
 }
 
-lvsblNCgen <- function(param, data, nq, grp, weights, nodes, scorevar, timevar, covariate, REadjust, model) {
-    .Call('_rcpm_lvsblNCgen', PACKAGE = 'rcpm', param, data, nq, grp, weights, nodes, scorevar, timevar, covariate, REadjust, model)
+transfY <- function(Y, link, param, objtransi) {
+    .Call('_rcpm_transfY', PACKAGE = 'rcpm', Y, link, param, objtransi)
 }
 
-bilvsblNC <- function(param, data, nq, adapt, grp, weights, nodes, newnodes, newweights, scorevar1, scorevar2, timevar, covariate, REadjust, model) {
-    .Call('_rcpm_bilvsblNC', PACKAGE = 'rcpm', param, data, nq, adapt, grp, weights, nodes, newnodes, newweights, scorevar1, scorevar2, timevar, covariate, REadjust, model)
+lvsblNCgen <- function(param, data, nq, grp, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, gamma) {
+    .Call('_rcpm_lvsblNCgen', PACKAGE = 'rcpm', param, data, nq, grp, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, gamma)
 }
 
-IndRePostDis <- function(re, data, rcpmeObj, scorevar, timevar, model) {
-    .Call('_rcpm_IndRePostDis', PACKAGE = 'rcpm', re, data, rcpmeObj, scorevar, timevar, model)
+bilvsblNC <- function(param, data, nq, adapt, grp, weights, nodes, newnodes, newweights, scorevar1, scorevar2, timevar, covariate, REadjust, model, link1, link2, objtrans1, objtrans2, gamma) {
+    .Call('_rcpm_bilvsblNC', PACKAGE = 'rcpm', param, data, nq, adapt, grp, weights, nodes, newnodes, newweights, scorevar1, scorevar2, timevar, covariate, REadjust, model, link1, link2, objtrans1, objtrans2, gamma)
 }
 
-IndRePostDis2 <- function(re, data, rcpmeObj, scorevar, timevar, model) {
-    .Call('_rcpm_IndRePostDis2', PACKAGE = 'rcpm', re, data, rcpmeObj, scorevar, timevar, model)
+IndRePostDis <- function(re, data, rcpmeObj, scorevar, timevar, model, gamma, link) {
+    .Call('_rcpm_IndRePostDis', PACKAGE = 'rcpm', re, data, rcpmeObj, scorevar, timevar, model, gamma, link)
 }
 
-BivIndRePostDis <- function(re, data, rcpmeObj, scorevar1, scorevar2, timevar, model) {
-    .Call('_rcpm_BivIndRePostDis', PACKAGE = 'rcpm', re, data, rcpmeObj, scorevar1, scorevar2, timevar, model)
+IndRePostDis2 <- function(re, data, rcpmeObj, scorevar, timevar, model, gamma, link) {
+    .Call('_rcpm_IndRePostDis2', PACKAGE = 'rcpm', re, data, rcpmeObj, scorevar, timevar, model, gamma, link)
 }
 
-BivIndRePostDis2 <- function(re, data, rcpmeObj, scorevar1, scorevar2, timevar, model) {
-    .Call('_rcpm_BivIndRePostDis2', PACKAGE = 'rcpm', re, data, rcpmeObj, scorevar1, scorevar2, timevar, model)
+BivIndRePostDis <- function(re, data, rcpmeObj, scorevar1, scorevar2, timevar, model, gamma, link1, link2) {
+    .Call('_rcpm_BivIndRePostDis', PACKAGE = 'rcpm', re, data, rcpmeObj, scorevar1, scorevar2, timevar, model, gamma, link1, link2)
+}
+
+BivIndRePostDis2 <- function(re, data, rcpmeObj, scorevar1, scorevar2, timevar, model, gamma) {
+    .Call('_rcpm_BivIndRePostDis2', PACKAGE = 'rcpm', re, data, rcpmeObj, scorevar1, scorevar2, timevar, model, gamma)
 }
 
