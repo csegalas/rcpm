@@ -6,7 +6,8 @@
 \usage{
 bircpme(longdata, formu, covariate = "NULL", REadjust = "no",
   gamma = 0.1, nbnodes = 10, adapt = FALSE, param = NULL,
-  nproc = 1, model = "test")
+  nproc = 1, model = "test", link1 = "linear", link2 = "linear",
+  twostep = FALSE)
 }
 \arguments{
 \item{longdata}{A dataframe containing the variables used in the formula  \code{formu}}

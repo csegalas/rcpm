@@ -8,18 +8,20 @@ testRCPMM(longdata, formu, covariate = NULL, gamma = 0.1,
   nbnodes = 5, nbpert = 500)
 }
 \arguments{
-\item{longdata}{Longitudinal data}
+\item{longdata}{A longitudinal dataset containing all variables used in the formula \code{formu}}
 
-\item{formu}{A formula indicating which variables from longdata should be used. It must have the following form : markervar ~ timevar | groupvar}
+\item{formu}{A formula object describing which variables are to be used. The formula has to be of the following form \code{markervar ~ scorevar | groupvar} for the function to work.}
+
+\item{covariate}{An eventual covariate dependence of all the parameters in the model. Not implemented yet.}
 
 \item{gamma}{A smoothing parameter for the transition on the changepoint date. 0.1 by default.}
 
-\item{nbnodes}{Number of adaptive quadrature nodes used to compute the integrals. 5 by default.}
+\item{nbnodes}{Number of pseudo-adaptive gaussian quadrature nodes used to compute the numeric integrals. 5 by default.}
 
 \item{nbpert}{Number of perturbations used to compute the empirical p-value. 500 by default.}
 }
 \value{
-The function returns a list with the computed empirical p-value, the nbpert perturbed test statistics and the observed test statistic.
+The function returns a list with the computed empirical p-value and the observed test statistic.
 }
 \description{
 Realizes the supremum score test on longdata according to formu.

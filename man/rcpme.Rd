@@ -5,23 +5,30 @@
 \title{Random Change Point Mixed Model}
 \usage{
 rcpme(longdata, formu, covariate = "NULL", REadjust = "no",
-  gamma = 0.1, nbnodes = 10, param = NULL, model = "test")
+  gamma = 0.1, nbnodes = 10, param = NULL, model = "test",
+  link = "linear")
 }
 \arguments{
-\item{longdata}{A dataframe containing the variables used in the formula  \code{formu}}
+\item{longdata}{A longitudinal dataset containing all variables used in the formula \code{formu}}
 
-\item{formu}{A formula object describing which variables are to be used. The formula has to be of the following form \code{markervar ~ scorevar | grouvpar} for the function to work.}
+\item{formu}{A formula object describing which variables are to be used. The formula has to be of the following form \code{markervar ~ scorevar | groupvar} for the function to work.}
 
 \item{covariate}{An optional string indicating a binary covariate to add on the fixed effects, i.e. intercept, mean slope, difference of slopes and changepoint date. The parameter \code{REadjust} indicates how this covariate influences the random effects variance structure. Default to NULL, i.e. no covariates.}
 
 \item{REadjust}{An optional string value indicating how the random effects variance structure depends on \code{covariate}. "no" means that the structure doesn't depend upon \code{covariate}. "prop" indicates that the random effects variance structure is proportionnal according to \code{covariate} value. "yes" indicates that there is two different random effects variance structures, i.e. one for each level of \code{covariate}. Default to "no".}
 
-\item{gamma}{A numeric parameter indicating how smooth the trajectory is on the changepoint date. Default to 0.1.}
+\item{gamma}{A numeric parameter indicating how smooth the trajectory is on the changepoint date. It should be small according to the time variable scale. Default to 0.1.}
 
 \item{nbnodes}{A numeric parameter indicating how many nodes are to be used for the gaussian quadrature for numerical integration. Default to 10.}
+
+\item{param}{An optional vector parameter that contains initial parameter for the optimization of the log-likelihood. Default to NULL.}
+
+\item{model}{An optional string indicating which formulation of the random changepoint exists. The first is `test` which is used by the `testRCPMM` function, the second is `bw` for the Bacon-Watts formulation of the model. When used for estimation purpose, you should always use `bw` which has better interpretability properties. Default to `bw`}
+
+\item{link}{An optional string indicating which link function is to be used. This link function is used to deal with non-gaussian data. With `link=splines` the model estimates an appropriate I-spline link function `g` so that `g(scorevar)` is a gaussian variable. If data is already gaussian, you can chose `link=linear` so that no link function will be estimated. Default to `linear`.}
 }
 \value{
-The output contains several objects : \code{loglik} is the value of the log-likelihood at the optimum; \code{fixed} contains all fixed parameters estimates, standard errors, CIs, wald test statistic and corresponding pvalue when possible; \code{sdres} the estimated residual error; \code{VarEA} a 4x4 matrix or a list of 4x4 matrices - if there is some covariate for example - containing the estimated random effects covariance matrix; \code{optpar} the optimal parameters maximizing the log-likelihood; \code{covariate} the covariate declared in the function call; \code{REadjust} the string indicating how random effects structure is handled as declared in the function call, \code{invhessian} the covariance matrix containing all the standard errors and correlations of the parameter estimates;
+The output contains several objects : \code{call} is the function call; \code{loglik} is the value of the log-likelihood at the optimum; \code{formula} is the formula describing which variables are used in the model; \code{fixed} contains all fixed parameters estimates, standard errors, CIs, wald test statistic and corresponding pvalue when possible; \code{sdres} the estimated residual error; \code{VarEA} a 4x4 matrix or a list of 4x4 matrices - if there is some covariate for example - containing the estimated random effects covariance matrix; \code{optpar} the optimal parameters maximizing the log-likelihood; \code{covariate} the covariate declared in the function call; \code{REadjust} the string indicating how random effects structure is handled as declared in the function call, \code{invhessian} the covariance matrix containing all the standard errors and correlations of the parameter estimates; \code{conv} an index of successful convergance, equals to 1 if success; \code{init} the initial values vector; \code{model} the model used during estimation; \code{gamma} the value of gamma used during estimation; \code{link} the link function used during estimation.
 }
 \description{
 Random Change Point Mixed Model
