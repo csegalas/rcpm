@@ -243,6 +243,4 @@ random changepoint model. This is done with the `rcpme` function.
     ## 24  3  14  0.1400411  1 14.49509
     ## 25  4  25 -1.1649555  1 26.27072
 
-    ## Warning: Removed 5 rows containing missing values (geom_point).
-
 ![](Readme_files/figure-markdown_strict/unnamed-chunk-7-1.png)
