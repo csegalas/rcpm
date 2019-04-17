@@ -72,9 +72,23 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// transfY
+arma::mat transfY(arma::colvec Y, String link, arma::colvec param, List objtransi);
+RcppExport SEXP _rcpm_transfY(SEXP YSEXP, SEXP linkSEXP, SEXP paramSEXP, SEXP objtransiSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::colvec >::type Y(YSEXP);
+    Rcpp::traits::input_parameter< String >::type link(linkSEXP);
+    Rcpp::traits::input_parameter< arma::colvec >::type param(paramSEXP);
+    Rcpp::traits::input_parameter< List >::type objtransi(objtransiSEXP);
+    rcpp_result_gen = Rcpp::wrap(transfY(Y, link, param, objtransi));
+    return rcpp_result_gen;
+END_RCPP
+}
 // lvsblNCgen
-double lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, NumericVector weights, NumericVector nodes, String scorevar, String timevar, String covariate, String REadjust, String model);
-RcppExport SEXP _rcpm_lvsblNCgen(SEXP paramSEXP, SEXP dataSEXP, SEXP nqSEXP, SEXP grpSEXP, SEXP weightsSEXP, SEXP nodesSEXP, SEXP scorevarSEXP, SEXP timevarSEXP, SEXP covariateSEXP, SEXP REadjustSEXP, SEXP modelSEXP) {
+double lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, NumericVector weights, NumericVector nodes, String scorevar, String timevar, String covariate, String REadjust, String model, String link, List objtrans, double gamma);
+RcppExport SEXP _rcpm_lvsblNCgen(SEXP paramSEXP, SEXP dataSEXP, SEXP nqSEXP, SEXP grpSEXP, SEXP weightsSEXP, SEXP nodesSEXP, SEXP scorevarSEXP, SEXP timevarSEXP, SEXP covariateSEXP, SEXP REadjustSEXP, SEXP modelSEXP, SEXP linkSEXP, SEXP objtransSEXP, SEXP gammaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -89,13 +103,16 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< String >::type covariate(covariateSEXP);
     Rcpp::traits::input_parameter< String >::type REadjust(REadjustSEXP);
     Rcpp::traits::input_parameter< String >::type model(modelSEXP);
-    rcpp_result_gen = Rcpp::wrap(lvsblNCgen(param, data, nq, grp, weights, nodes, scorevar, timevar, covariate, REadjust, model));
+    Rcpp::traits::input_parameter< String >::type link(linkSEXP);
+    Rcpp::traits::input_parameter< List >::type objtrans(objtransSEXP);
+    Rcpp::traits::input_parameter< double >::type gamma(gammaSEXP);
+    rcpp_result_gen = Rcpp::wrap(lvsblNCgen(param, data, nq, grp, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, gamma));
     return rcpp_result_gen;
 END_RCPP
 }
 // bilvsblNC
-double bilvsblNC(NumericVector param, List data, int nq, bool adapt, NumericVector grp, NumericVector weights, NumericMatrix nodes, List newnodes, List newweights, String scorevar1, String scorevar2, String timevar, String covariate, String REadjust, String model);
-RcppExport SEXP _rcpm_bilvsblNC(SEXP paramSEXP, SEXP dataSEXP, SEXP nqSEXP, SEXP adaptSEXP, SEXP grpSEXP, SEXP weightsSEXP, SEXP nodesSEXP, SEXP newnodesSEXP, SEXP newweightsSEXP, SEXP scorevar1SEXP, SEXP scorevar2SEXP, SEXP timevarSEXP, SEXP covariateSEXP, SEXP REadjustSEXP, SEXP modelSEXP) {
+double bilvsblNC(NumericVector param, List data, int nq, bool adapt, NumericVector grp, NumericVector weights, NumericMatrix nodes, List newnodes, List newweights, String scorevar1, String scorevar2, String timevar, String covariate, String REadjust, String model, String link1, String link2, List objtrans1, List objtrans2, double gamma);
+RcppExport SEXP _rcpm_bilvsblNC(SEXP paramSEXP, SEXP dataSEXP, SEXP nqSEXP, SEXP adaptSEXP, SEXP grpSEXP, SEXP weightsSEXP, SEXP nodesSEXP, SEXP newnodesSEXP, SEXP newweightsSEXP, SEXP scorevar1SEXP, SEXP scorevar2SEXP, SEXP timevarSEXP, SEXP covariateSEXP, SEXP REadjustSEXP, SEXP modelSEXP, SEXP link1SEXP, SEXP link2SEXP, SEXP objtrans1SEXP, SEXP objtrans2SEXP, SEXP gammaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -114,13 +131,18 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< String >::type covariate(covariateSEXP);
     Rcpp::traits::input_parameter< String >::type REadjust(REadjustSEXP);
     Rcpp::traits::input_parameter< String >::type model(modelSEXP);
-    rcpp_result_gen = Rcpp::wrap(bilvsblNC(param, data, nq, adapt, grp, weights, nodes, newnodes, newweights, scorevar1, scorevar2, timevar, covariate, REadjust, model));
+    Rcpp::traits::input_parameter< String >::type link1(link1SEXP);
+    Rcpp::traits::input_parameter< String >::type link2(link2SEXP);
+    Rcpp::traits::input_parameter< List >::type objtrans1(objtrans1SEXP);
+    Rcpp::traits::input_parameter< List >::type objtrans2(objtrans2SEXP);
+    Rcpp::traits::input_parameter< double >::type gamma(gammaSEXP);
+    rcpp_result_gen = Rcpp::wrap(bilvsblNC(param, data, nq, adapt, grp, weights, nodes, newnodes, newweights, scorevar1, scorevar2, timevar, covariate, REadjust, model, link1, link2, objtrans1, objtrans2, gamma));
     return rcpp_result_gen;
 END_RCPP
 }
 // IndRePostDis
-double IndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String scorevar, String timevar, String model);
-RcppExport SEXP _rcpm_IndRePostDis(SEXP reSEXP, SEXP dataSEXP, SEXP rcpmeObjSEXP, SEXP scorevarSEXP, SEXP timevarSEXP, SEXP modelSEXP) {
+double IndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String scorevar, String timevar, String model, double gamma, String link);
+RcppExport SEXP _rcpm_IndRePostDis(SEXP reSEXP, SEXP dataSEXP, SEXP rcpmeObjSEXP, SEXP scorevarSEXP, SEXP timevarSEXP, SEXP modelSEXP, SEXP gammaSEXP, SEXP linkSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -130,13 +152,15 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< String >::type scorevar(scorevarSEXP);
     Rcpp::traits::input_parameter< String >::type timevar(timevarSEXP);
     Rcpp::traits::input_parameter< String >::type model(modelSEXP);
-    rcpp_result_gen = Rcpp::wrap(IndRePostDis(re, data, rcpmeObj, scorevar, timevar, model));
+    Rcpp::traits::input_parameter< double >::type gamma(gammaSEXP);
+    Rcpp::traits::input_parameter< String >::type link(linkSEXP);
+    rcpp_result_gen = Rcpp::wrap(IndRePostDis(re, data, rcpmeObj, scorevar, timevar, model, gamma, link));
     return rcpp_result_gen;
 END_RCPP
 }
 // IndRePostDis2
-double IndRePostDis2(double re, DataFrame data, List rcpmeObj, String scorevar, String timevar, String model);
-RcppExport SEXP _rcpm_IndRePostDis2(SEXP reSEXP, SEXP dataSEXP, SEXP rcpmeObjSEXP, SEXP scorevarSEXP, SEXP timevarSEXP, SEXP modelSEXP) {
+double IndRePostDis2(double re, DataFrame data, List rcpmeObj, String scorevar, String timevar, String model, double gamma, String link);
+RcppExport SEXP _rcpm_IndRePostDis2(SEXP reSEXP, SEXP dataSEXP, SEXP rcpmeObjSEXP, SEXP scorevarSEXP, SEXP timevarSEXP, SEXP modelSEXP, SEXP gammaSEXP, SEXP linkSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -146,13 +170,15 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< String >::type scorevar(scorevarSEXP);
     Rcpp::traits::input_parameter< String >::type timevar(timevarSEXP);
     Rcpp::traits::input_parameter< String >::type model(modelSEXP);
-    rcpp_result_gen = Rcpp::wrap(IndRePostDis2(re, data, rcpmeObj, scorevar, timevar, model));
+    Rcpp::traits::input_parameter< double >::type gamma(gammaSEXP);
+    Rcpp::traits::input_parameter< String >::type link(linkSEXP);
+    rcpp_result_gen = Rcpp::wrap(IndRePostDis2(re, data, rcpmeObj, scorevar, timevar, model, gamma, link));
     return rcpp_result_gen;
 END_RCPP
 }
 // BivIndRePostDis
-double BivIndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String scorevar1, String scorevar2, String timevar, String model);
-RcppExport SEXP _rcpm_BivIndRePostDis(SEXP reSEXP, SEXP dataSEXP, SEXP rcpmeObjSEXP, SEXP scorevar1SEXP, SEXP scorevar2SEXP, SEXP timevarSEXP, SEXP modelSEXP) {
+double BivIndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String scorevar1, String scorevar2, String timevar, String model, double gamma, String link1, String link2);
+RcppExport SEXP _rcpm_BivIndRePostDis(SEXP reSEXP, SEXP dataSEXP, SEXP rcpmeObjSEXP, SEXP scorevar1SEXP, SEXP scorevar2SEXP, SEXP timevarSEXP, SEXP modelSEXP, SEXP gammaSEXP, SEXP link1SEXP, SEXP link2SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -163,13 +189,16 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< String >::type scorevar2(scorevar2SEXP);
     Rcpp::traits::input_parameter< String >::type timevar(timevarSEXP);
     Rcpp::traits::input_parameter< String >::type model(modelSEXP);
-    rcpp_result_gen = Rcpp::wrap(BivIndRePostDis(re, data, rcpmeObj, scorevar1, scorevar2, timevar, model));
+    Rcpp::traits::input_parameter< double >::type gamma(gammaSEXP);
+    Rcpp::traits::input_parameter< String >::type link1(link1SEXP);
+    Rcpp::traits::input_parameter< String >::type link2(link2SEXP);
+    rcpp_result_gen = Rcpp::wrap(BivIndRePostDis(re, data, rcpmeObj, scorevar1, scorevar2, timevar, model, gamma, link1, link2));
     return rcpp_result_gen;
 END_RCPP
 }
 // BivIndRePostDis2
-double BivIndRePostDis2(arma::colvec re, DataFrame data, List rcpmeObj, String scorevar1, String scorevar2, String timevar, String model);
-RcppExport SEXP _rcpm_BivIndRePostDis2(SEXP reSEXP, SEXP dataSEXP, SEXP rcpmeObjSEXP, SEXP scorevar1SEXP, SEXP scorevar2SEXP, SEXP timevarSEXP, SEXP modelSEXP) {
+double BivIndRePostDis2(arma::colvec re, DataFrame data, List rcpmeObj, String scorevar1, String scorevar2, String timevar, String model, double gamma);
+RcppExport SEXP _rcpm_BivIndRePostDis2(SEXP reSEXP, SEXP dataSEXP, SEXP rcpmeObjSEXP, SEXP scorevar1SEXP, SEXP scorevar2SEXP, SEXP timevarSEXP, SEXP modelSEXP, SEXP gammaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -180,7 +209,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< String >::type scorevar2(scorevar2SEXP);
     Rcpp::traits::input_parameter< String >::type timevar(timevarSEXP);
     Rcpp::traits::input_parameter< String >::type model(modelSEXP);
-    rcpp_result_gen = Rcpp::wrap(BivIndRePostDis2(re, data, rcpmeObj, scorevar1, scorevar2, timevar, model));
+    Rcpp::traits::input_parameter< double >::type gamma(gammaSEXP);
+    rcpp_result_gen = Rcpp::wrap(BivIndRePostDis2(re, data, rcpmeObj, scorevar1, scorevar2, timevar, model, gamma));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -190,12 +220,13 @@ static const R_CallMethodDef CallEntries[] = {
     {"_rcpm_dmvnrmarma", (DL_FUNC) &_rcpm_dmvnrmarma, 4},
     {"_rcpm_dmvnrmarma1d", (DL_FUNC) &_rcpm_dmvnrmarma1d, 4},
     {"_rcpm_ScoreInd", (DL_FUNC) &_rcpm_ScoreInd, 15},
-    {"_rcpm_lvsblNCgen", (DL_FUNC) &_rcpm_lvsblNCgen, 11},
-    {"_rcpm_bilvsblNC", (DL_FUNC) &_rcpm_bilvsblNC, 15},
-    {"_rcpm_IndRePostDis", (DL_FUNC) &_rcpm_IndRePostDis, 6},
-    {"_rcpm_IndRePostDis2", (DL_FUNC) &_rcpm_IndRePostDis2, 6},
-    {"_rcpm_BivIndRePostDis", (DL_FUNC) &_rcpm_BivIndRePostDis, 7},
-    {"_rcpm_BivIndRePostDis2", (DL_FUNC) &_rcpm_BivIndRePostDis2, 7},
+    {"_rcpm_transfY", (DL_FUNC) &_rcpm_transfY, 4},
+    {"_rcpm_lvsblNCgen", (DL_FUNC) &_rcpm_lvsblNCgen, 14},
+    {"_rcpm_bilvsblNC", (DL_FUNC) &_rcpm_bilvsblNC, 20},
+    {"_rcpm_IndRePostDis", (DL_FUNC) &_rcpm_IndRePostDis, 8},
+    {"_rcpm_IndRePostDis2", (DL_FUNC) &_rcpm_IndRePostDis2, 8},
+    {"_rcpm_BivIndRePostDis", (DL_FUNC) &_rcpm_BivIndRePostDis, 10},
+    {"_rcpm_BivIndRePostDis2", (DL_FUNC) &_rcpm_BivIndRePostDis2, 8},
     {NULL, NULL, 0}
 };
 
