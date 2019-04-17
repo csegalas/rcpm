@@ -214,6 +214,12 @@ random changepoint model. This is done with the `rcpme` function.
     ## $link
     ## [1] "linear"
 
+To assess the quality of the obtained estimation, we can use the
+function `IndPres` that estimates individual prediction based on the
+output of the `rcpme` function. We plotted for twelve randomly selected
+subjects their individual prediction (plain line) vs. their observed
+measures (dots).
+
     pred <- unlist(IndPred(esti))
 
 ![](Readme_files/figure-markdown_strict/unnamed-chunk-7-1.png)
