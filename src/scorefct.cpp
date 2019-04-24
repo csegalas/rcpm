@@ -142,7 +142,6 @@ double ScoreInd(DataFrame data, double Beta0, double Beta1, double sigma, double
 //   return out;
 // }
 
-
 // // [[Rcpp::depends("RcppArmadillo")]]
 // // [[Rcpp::export]]
 // double lvsblNC(NumericVector param, List data, int nq, NumericVector grp, NumericVector weights, NumericVector nodes){
@@ -593,10 +592,12 @@ double IndRePostDis2(double re, DataFrame data, List rcpmeObj, String scorevar, 
 // [[Rcpp::export]]
 double BivIndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String scorevar1, String scorevar2, String timevar, String model, double gamma, String link1, String link2){
   
+  double out = 0;
+  
   // index
-  int rk1 = 4 - (link1 == "splines"); 
-  int rk2 = rk1 + 12 - (link2 == "splines"); 
-  int rk3 = rk2 + 17; 
+  int rk1 = 4 - (link1 == "splines");
+  int rk2 = rk1 + 12 - (link2 == "splines");
+  int rk3 = rk2 + 17;
   int rk4 = rk3 + (link1 == "splines")*5;
   
   // extracting data
@@ -608,44 +609,97 @@ double BivIndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String sc
   
   int lgt1 = scoreNoNA1.n_elem; int lgt2 = scoreNoNA2.n_elem; int lgt = lgt1 + lgt2;
   arma::colvec scoreNoNA = join_cols(scoreNoNA1, scoreNoNA2);
+  if (lgt2 == 0 & lgt1 != 0){
+    // extracting estimated parameters
+    arma::mat estiVarEA = as<arma::mat>(rcpmeObj[5]);
+    arma::mat B1 = estiVarEA.submat(0,0,3,3);
+    NumericVector par = as<NumericVector>(rcpmeObj[6]);
+    arma::colvec betas = arma::zeros<arma::colvec>(3);
+    
+    betas(0) = par(0) + re(0); betas(1) = par(1) + re(1);
+    betas(2) = par(2) + re(2);
+    arma::colvec sigma2 = as<arma::colvec>(rcpmeObj[4]);
+    arma::mat Sigma1 = pow(sigma2(0),2) * arma::eye<arma::mat>(lgt1,lgt1);
+    
+    
+    // distribution of Y_i | tau_i and tau_i
+    arma::mat Z1 = arma::ones<arma::mat>(lgt1,3);
+    if (model == "test"){Z1.col(1) = timeNoNA1;}
+    if (model == "bw"){Z1.col(1) = timeNoNA1 - arma::ones<arma::colvec>(lgt1)*(par[3]+re(3));}
+    Z1.col(2) = pow(pow(timeNoNA1 - arma::ones<arma::colvec>(lgt1)*(par[3]+re(3)),2)+gamma,0.5);
+    arma::colvec mu = arma::zeros<arma::colvec>(lgt1); mu = Z1 * betas;
+
+    arma::rowvec mure = arma::zeros<arma::rowvec>(4);
+    bool logtrue = true; double out = dmvnrmarma1d(trans(scoreNoNA1), trans(mu), Sigma1, logtrue);
+    out = out + dmvnrmarma1d(re, mure, B1, logtrue);
+    
+    return(out);
+  }
+  if (lgt1 == 0 & lgt2 != 0){
+    // extracting estimated parameters
+    arma::mat estiVarEA = as<arma::mat>(rcpmeObj[5]);
+    arma::mat B2 = estiVarEA.submat(4,4,7,7);
+    NumericVector par = as<NumericVector>(rcpmeObj[6]);
+    arma::colvec betas = arma::zeros<arma::colvec>(3);
+    
+    betas(0) = par(rk1+8) + re(0); betas(1) = par(rk1+9) + re(1); 
+    betas(2) = par(rk1+10) + re(2);
+    arma::colvec sigma2 = as<arma::colvec>(rcpmeObj[4]);
+    arma::mat Sigma2 = pow(sigma2(1),2) * arma::eye<arma::mat>(lgt2,lgt2);
+    
+    // distribution of Y_i | tau_i and tau_i
+    arma::mat Z2 = arma::ones<arma::mat>(lgt2,3);
+    if (model == "test"){ Z2.col(1) = timeNoNA2;}
+    if (model == "bw"){Z2.col(1) = timeNoNA2 - arma::ones<arma::colvec>(lgt2)*(par[rk1+11]+re(3));}
+    Z2.col(2) = pow(pow(timeNoNA2 - arma::ones<arma::colvec>(lgt2)*(par[rk1+11]+re(3)),2)+gamma,0.5);
+    arma::colvec mu = arma::zeros<arma::colvec>(lgt2); mu = Z2 * betas;
+
+    arma::rowvec mure = arma::zeros<arma::rowvec>(4);
+    bool logtrue = true; double out = dmvnrmarma1d(trans(scoreNoNA2), trans(mu), Sigma2, logtrue);
+    out = out + dmvnrmarma1d(re, mure, B2, logtrue);
+    
+    return(out);
+  }
+  if ((lgt1 != 0) & (lgt2 != 0)){
+    // extracting estimated parameters
+    arma::mat estiVarEA = as<arma::mat>(rcpmeObj[5]);
+    NumericVector par = as<NumericVector>(rcpmeObj[6]);
+    arma::colvec betas = arma::zeros<arma::colvec>(6);
+    
+    betas(0) = par(0) + re(0); betas(1) = par(1) + re(1);
+    betas(2) = par(2) + re(2); betas(3) = par(rk1+8) + re(4);
+    betas(4) = par(rk1+9) + re(5); betas(5) = par(rk1+10) + re(6);
+    arma::colvec sigma2 = as<arma::colvec>(rcpmeObj[4]);
+    arma::mat Sigma1 = pow(sigma2(0),2) * arma::eye<arma::mat>(lgt1,lgt1);
+    arma::mat Sigma2 = pow(sigma2(1),2) * arma::eye<arma::mat>(lgt2,lgt2);
+    arma::mat Sigma0 = arma::zeros<arma::mat>(lgt1,lgt2);
+    arma::mat Sigma = join_cols(join_rows(Sigma1,Sigma0), join_rows(trans(Sigma0),Sigma2));
+    
+    
+    // distribution of Y_i | tau_i and tau_i
+    arma::mat Z = arma::zeros<arma::mat>(lgt,6);
+    arma::mat Z01 = arma::zeros<arma::mat>(lgt1,3);
+    arma::mat Z02 = arma::zeros<arma::mat>(lgt2,3);
+    arma::mat Z1 = arma::ones<arma::mat>(lgt1,3);
+    arma::mat Z2 = arma::ones<arma::mat>(lgt2,3);
+    if (model == "test"){Z1.col(1) = timeNoNA1; Z2.col(1) = timeNoNA2;}
+    if (model == "bw"){Z1.col(1) = timeNoNA1 - arma::ones<arma::colvec>(lgt1)*(par[3]+re(3)); Z2.col(1) = timeNoNA2 - arma::ones<arma::colvec>(lgt2)*(par[rk1+11]+re(7));}
+    Z1.col(2) = pow(pow(timeNoNA1 - arma::ones<arma::colvec>(lgt1)*(par[3]+re(3)),2)+gamma,0.5);
+    Z2.col(2) = pow(pow(timeNoNA2 - arma::ones<arma::colvec>(lgt2)*(par[rk1+11]+re(7)),2)+gamma,0.5);
+    Z = join_cols(join_rows(Z1,Z01),join_rows(Z02,Z2));
+    arma::colvec mu = arma::zeros<arma::colvec>(lgt); mu = Z * betas;
+
+    arma::rowvec mure = arma::zeros<arma::rowvec>(8);
+    bool logtrue = true; double out = dmvnrmarma1d(trans(scoreNoNA), trans(mu), Sigma, logtrue);
+    out = out + dmvnrmarma1d(re, mure, estiVarEA, logtrue);
+    
+    return(out);
+  }
   
-  // extracting estimated parameters
-  arma::mat estiVarEA = as<arma::mat>(rcpmeObj[5]);
-  NumericVector par = as<NumericVector>(rcpmeObj[6]);
-  arma::colvec betas = arma::zeros<arma::colvec>(6);
-  
-  betas(0) = par(0) + re(0); betas(1) = par(1) + re(1);
-  betas(2) = par(2) + re(2); betas(3) = par(rk1+8) + re(4);
-  betas(4) = par(rk1+9) + re(5); betas(5) = par(rk1+10) + re(6);
-  arma::colvec sigma2 = as<arma::colvec>(rcpmeObj[4]);
-  double sigma2_1 = sigma2(0); double sigma2_2 = sigma2(1);
-  arma::mat Sigma1 = sigma2_1 * arma::eye<arma::mat>(lgt1,lgt1);
-  arma::mat Sigma2 = sigma2_2 * arma::eye<arma::mat>(lgt2,lgt2);
-  arma::mat Sigma0 = arma::zeros<arma::mat>(lgt1,lgt2);
-  arma::mat Sigma = join_cols(join_rows(Sigma1,trans(Sigma0)), join_rows(Sigma0,Sigma2));
-  
-  
-  // distribution of Y_i | tau_i and tau_i
-  arma::mat Z = arma::zeros<arma::mat>(lgt,6);
-  arma::mat Z01 = arma::zeros<arma::mat>(lgt1,3);
-  arma::mat Z02 = arma::zeros<arma::mat>(lgt2,3);
-  arma::mat Z1 = arma::ones<arma::mat>(lgt1,3);
-  arma::mat Z2 = arma::ones<arma::mat>(lgt2,3);
-  if (model == "test"){Z1.col(1) = timeNoNA1; Z2.col(1) = timeNoNA2;}
-  if (model == "bw"){Z1.col(1) = timeNoNA1 - arma::ones<arma::colvec>(lgt1)*(par[3]+re(3)); Z2.col(1) = timeNoNA2 - arma::ones<arma::colvec>(lgt2)*(par[15]+re(7));}
-  Z1.col(2) = pow(pow(timeNoNA1 - arma::ones<arma::colvec>(lgt1)*(par[3]+re(3)),2)+gamma,0.5);
-  Z2.col(2) = pow(pow(timeNoNA2 - arma::ones<arma::colvec>(lgt2)*(par[rk1+11]+re(7)),2)+gamma,0.5);
-  Z = join_cols(join_rows(Z1,Z01),join_rows(Z02,Z2));
-  arma::colvec mu = arma::zeros<arma::colvec>(lgt); mu = Z * betas;
-  
-  arma::mat mure = arma::zeros<arma::rowvec>(8);
-  bool logtrue = true; double out = dmvnrmarma1d(trans(scoreNoNA), trans(mu), Sigma, logtrue);
-  out = out + dmvnrmarma1d(re, mure, estiVarEA, logtrue);
-  
-  return out;
+  return(out);
 }
 
-// [[Rcpp::depends("RcppArmadillo")]]
+// [[Rcpp::depends("RcppArmadillo")]] A ADAPTER
 // [[Rcpp::export]]
 double BivIndRePostDis2(arma::colvec re, DataFrame data, List rcpmeObj, String scorevar1, String scorevar2, String timevar, String model, double gamma){
   
