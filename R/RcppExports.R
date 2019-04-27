@@ -41,7 +41,7 @@ BivIndRePostDis <- function(re, data, rcpmeObj, scorevar1, scorevar2, timevar, m
     .Call('_rcpm_BivIndRePostDis', PACKAGE = 'rcpm', re, data, rcpmeObj, scorevar1, scorevar2, timevar, model, gamma, link1, link2)
 }
 
-BivIndRePostDis2 <- function(re, data, rcpmeObj, scorevar1, scorevar2, timevar, model, gamma) {
-    .Call('_rcpm_BivIndRePostDis2', PACKAGE = 'rcpm', re, data, rcpmeObj, scorevar1, scorevar2, timevar, model, gamma)
+BivIndRePostDis2 <- function(re, data, rcpmeObj, scorevar1, scorevar2, timevar, model, gamma, link1, link2) {
+    .Call('_rcpm_BivIndRePostDis2', PACKAGE = 'rcpm', re, data, rcpmeObj, scorevar1, scorevar2, timevar, model, gamma, link1, link2)
 }
 

@@ -504,32 +504,57 @@ REestimate <- function(rcpmeObj, longdata, var = FALSE, onlytau = FALSE){
         if(((sum(!is.na(x[,scorevar1]))==0)) & (sum(!is.na(x[,scorevar2]))!=0)) {
           re <- rep(0,4)
           opt<-marqLevAlg(b = re, fn = BivIndRePostDis, rcpmeObj = rcpmeObj, data = x, scorevar1 = scorevar1, scorevar2 = scorevar2, timevar = timevar, model = model, gamma = gamma, link1 = link1, link2 = link2);
-          if(opt$istop == 1) {return(list("par"=c(rep(0,4),opt$b), "var"=matrix(c(rep(0,36),opt$v[c(1,2,4,7)],rep(0,4),opt$v[c(2,3,5,8)],rep(0,4),opt$v[c(4,5,6,9)],rep(0,4),opt$v[c(7,8,9,10)]), nrow =8, byrow = TRUE)));} 
-          else {return(list("par"=re, "var"=diag(8)))} 
+          if(opt$istop == 1) {return(list("par"=c(rep(0,4),opt$b), "var" = rbind(cbind(diag(4), matrix(rep(0,16),nrow=4)), cbind(matrix(rep(0,16),nrow=4), matrix(opt$v[c(1,2,4,7,2,3,5,8,4,5,6,9,7,8,9,10)], nrow = 4, byrow = TRUE)))));} 
+          else {return(list("par"=rep(0,8), "var"=diag(8)))} 
       }
         if(((sum(!is.na(x[,scorevar1]))!=0)) & (sum(!is.na(x[,scorevar2]))==0)) {
           re <- rep(0,4)
           opt<-marqLevAlg(b = re, fn = BivIndRePostDis, rcpmeObj = rcpmeObj, data = x, scorevar1 = scorevar1, scorevar2 = scorevar2, timevar = timevar, model = model, gamma = gamma, link1 = link1, link2 = link2);
-          if(opt$istop == 1) {return(list("par"=c(opt$b,rep(0,4)), "var"=matrix(c(opt$v[c(1,2,4,7)],rep(0,4),opt$v[c(2,3,5,8)],rep(0,4),opt$v[c(4,5,6,9)],rep(0,4),opt$v[c(7,8,9,10)],rep(0,36)), nrow =8, byrow = TRUE)));} 
-          else {return(list("par"=re, "var"=diag(8)))} 
+          if(opt$istop == 1) {return(list("par"=c(opt$b,rep(0,4)), "var" = rbind(cbind(matrix(opt$v[c(1,2,4,7,2,3,5,8,4,5,6,9,7,8,9,10)], nrow = 4, byrow = TRUE), matrix(rep(0,16),nrow=4)), cbind(matrix(rep(0,16),nrow=4), diag(4)))));} 
+          else {return(list("par"=rep(0,8), "var"=diag(8)))} 
     }
-        else {return("par"=re);}
+        else {return(list("par"=rep(0,8), "var"=diag(8)))} 
       }))}
-      
-      
-      if (var == TRUE) {return(by(longdata,longdata[,groupvar],function(x){ #### a adapter
-        if(sum(!is.na(x[,c(scorevar1, scorevar2)])!=0)) {
-          opt<-marqLevAlg(b = re, fn = BivIndRePostDis, rcpmeObj = rcpmeObj, data = x, scorevar1 = scorevar1, scorevar2 = scorevar2, timevar = timevar, model = model, gamma = gamma, link1 = link1, link2 = link2);
-          if(opt$istop == 1) {return(list("par"=opt$b,"var"=matrix(c(opt$v[c(1,2,4,7,2,3,5,8,4,5,6,9,7,8,9,10)]), nrow = 4, byrow=TRUE)));} 
-          else {return(list("par"=re, "var"=diag(4)))}} 
-        
-        else {return(list("par"=re, "var"=diag(4)))}}))}
+    
     }
     
     else {
       re <- c(0,0)  
-      if (var == FALSE) {return(by(longdata,longdata[,groupvar],function(x){if(sum(!is.na(x[,c(scorevar1, scorevar2)])!=0)) {opt<-marqLevAlg(b = re, fn = BivIndRePostDis2, rcpmeObj = rcpmeObj, data = x, scorevar1 = scorevar1, scorevar2 = scorevar2, timevar = timevar, model = model, gamma = gamma, link1 = link1, link2 = link2);if(opt$istop ==1) {return("par"=opt$b);} else {return("par"=re);}} else {return("par"=re);}}))}
-      if (var == TRUE) {return(by(longdata,longdata[,groupvar],function(x){if(sum(!is.na(x[,c(scorevar1, scorevar2)])!=0)) {opt<-marqLevAlg(b = re, fn = BivIndRePostDis2, rcpmeObj = rcpmeObj, data = x, scorevar1 = scorevar1, scorevar2 = scorevar2, timevar = timevar, model = model, gamma = gamma, link1 = link1, link2 = link2);if(opt$istop == 1) {return(list("par"=opt$b,"var"=opt$v));} else {return(list("par"=0, "var"=1))};} else {return(list("par"=0, "var"=1))}}))}
+      if (var == FALSE) {return(by(longdata,longdata[,groupvar],function(x){
+        if(((sum(!is.na(x[,scorevar1]))!=0)) & (sum(!is.na(x[,scorevar2]))!=0)) {
+          re <- rep(0,2)
+          opt<-marqLevAlg(b = re, fn = BivIndRePostDis2, rcpmeObj = rcpmeObj, data = x, scorevar1 = scorevar1, scorevar2 = scorevar2, timevar = timevar, model = model, gamma = gamma, link1 = link1, link2 = link2);
+          if(opt$istop == 1) {return("par"=opt$b);} 
+          else {return("par"=c(0,0))};}
+        if(((sum(!is.na(x[,scorevar1]))==0)) & (sum(!is.na(x[,scorevar2]))!=0)) {
+          re <- 0
+          opt<-marqLevAlg(b = re, fn = BivIndRePostDis2, rcpmeObj = rcpmeObj, data = x, scorevar1 = scorevar1, scorevar2 = scorevar2, timevar = timevar, model = model, gamma = gamma, link1 = link1, link2 = link2);
+          if(opt$istop == 1) {return("par"=c(0,opt$b));} 
+          else {return("par"=c(0,0))};}
+        if(((sum(!is.na(x[,scorevar1]))!=0)) & (sum(!is.na(x[,scorevar2]))==0)) {
+          re <- 0
+          opt<-marqLevAlg(b = re, fn = BivIndRePostDis2, rcpmeObj = rcpmeObj, data = x, scorevar1 = scorevar1, scorevar2 = scorevar2, timevar = timevar, model = model, gamma = gamma, link1 = link1, link2 = link2);
+          if(opt$istop == 1) {return("par"=c(opt$b,0));} 
+          else {return("par"=c(0,0))};}
+        else {return("par"=c(0,0))}}))}
+      
+      if (var == TRUE) {return(by(longdata,longdata[,groupvar],function(x){
+        if(((sum(!is.na(x[,scorevar1]))!=0)) & (sum(!is.na(x[,scorevar2]))!=0)) {
+          re <- rep(0,2)
+          opt<-marqLevAlg(b = re, fn = BivIndRePostDis2, rcpmeObj = rcpmeObj, data = x, scorevar1 = scorevar1, scorevar2 = scorevar2, timevar = timevar, model = model, gamma = gamma, link1 = link1, link2 = link2);
+          if(opt$istop == 1) {return(list("par"=opt$b,"var"=opt$v));} 
+          else {return(list("par"=c(0,0), "var"=diag(2)))};}
+        if(((sum(!is.na(x[,scorevar1]))==0)) & (sum(!is.na(x[,scorevar2]))!=0)) {
+          re <- 0
+          opt<-marqLevAlg(b = re, fn = BivIndRePostDis2, rcpmeObj = rcpmeObj, data = x, scorevar1 = scorevar1, scorevar2 = scorevar2, timevar = timevar, model = model, gamma = gamma, link1 = link1, link2 = link2);
+          if(opt$istop == 1) {return(list("par"=c(0,opt$b),"var"=matrix(c(1,0,0,opt$v), nrow=2, byrow=TRUE)));} 
+          else {return(list("par"=c(0,0), "var"=diag(2)))};}
+        if(((sum(!is.na(x[,scorevar1]))!=0)) & (sum(!is.na(x[,scorevar2]))==0)) {
+          re <- 0
+          opt<-marqLevAlg(b = re, fn = BivIndRePostDis2, rcpmeObj = rcpmeObj, data = x, scorevar1 = scorevar1, scorevar2 = scorevar2, timevar = timevar, model = model, gamma = gamma, link1 = link1, link2 = link2);
+          if(opt$istop == 1) {return(list("par"=c(opt$b,0),"var"=matrix(c(opt$v,0,0,1), nrow =2, byrow=TRUE)));} 
+          else {return(list("par"=c(0,0), "var"=diag(2)))};}
+        else {return(list("par"=c(0,0), "var"=diag(2)))}}))}
     }
   }
 }
