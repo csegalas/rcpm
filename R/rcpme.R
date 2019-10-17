@@ -200,6 +200,75 @@ geneData <- function(n = 100, hyp = "null", params, pNA = 0, DO = 0, vis = c(0, 
   return(donnees)
 }
 
+geneDataSpl  <- function(n = 100, params, pNA = 0, DO = 0, vis = c(0, 3, 6, 9, 12, 15, 18, 21), gamma = 0.1, pcas){
+  
+  nbvis = length(vis)
+  donnees <- matrix(NA, nrow = n * nbvis, ncol = 4)
+  colnames(donnees) <- {c("ID", "date", "score", "statut")}
+  
+  if (length(params) != 12){
+    stop("Under the alternative with beta_2 random, params must be of length 12.")
+  }
+  else {
+    Beta0 <- params[1]
+    Beta1 <- params[2]
+    Beta2 <- params[3]
+    mutau <- params[4]
+    sigma <- params[5]
+    sigmab0 <- params[6]
+    sigmab1 <- params[7]
+    sigmab2 <- params[8]
+    sigmabtau <- params[9]
+    sigmab01 <- params[10] * sigmab0 * sigmab1
+    sigmab02 <- params[11] * sigmab0 * sigmab2
+    sigmab12 <- params[12] * sigmab2 * sigmab1
+    B = matrix(c(sigmab0**2, sigmab01, sigmab02, 0, sigmab01, sigmab1**2, sigmab12, 0, sigmab02, sigmab12, sigmab2**2, 0, 0, 0, 0, sigmabtau**2), nrow = 4)
+    bis <- matrix(NA, nrow = n, ncol = 4)
+    for (i in seq(n)){
+      # cas ou temoin
+      statut = rbinom(1, 1, pcas)
+      donnees[((nbvis*(i-1))+1):(nbvis*i),4] <- statut 
+      
+      # génération des effets aléatoires pour l'individu i
+      bis[i,] <- rmvnorm(1, mean = c(0,0,0,0), sigma = B)
+      donnees[((nbvis*(i-1))+1):(nbvis*i),1] <- i
+      donnees[((nbvis*(i-1))+1):(nbvis*i),2] <- vis
+      for (j in seq(nbvis)){
+        eps = rnorm(1,0,sigma)
+        donnees[(nbvis*(i-1))+j,3] = Beta0 + bis[i,1] + (Beta1 + bis[i,2])*vis[j] + (statut==1)*(Beta2 + bis[i,3])*(sum(4*ispline(vis[j] - (mutau + bis[i,4]),0,20,5))) + eps
+      }
+    }
+  }
+  
+  donnees <- as.data.frame(donnees)
+  if ((pNA!=0) & (DO !=0)){
+    stop("pNA and DO mustn\'t be both positive")
+  }
+  if ((pNA<0) | (pNA>1) | (DO<0) | (DO>1)){
+    stop("pNA and DO takes values in [0;1]")
+  }
+  
+  # censures
+  if (pNA !=0){
+    censures <- ifelse(c(t(cbind(rep(0,n),matrix(rbinom((nbvis-1)*n,1,pNA),nrow = n, ncol = nbvis-1))))==1,NA,0)
+    donnees$score <- ifelse(is.na(censures),NA,donnees$score)
+  }
+  
+  # drop-out
+  if (DO !=0){
+    geo <- rgeom(n, DO)+1
+    dropout_times <- ifelse(geo>7,NA,geo)
+    for (i in seq(n)){ 
+      if (!is.na(dropout_times[i])){
+        donnees$score[donnees$ID==i][-(1:(dropout_times[i]))] = NA
+      }
+    }
+  }
+  
+  return(donnees)
+}
+
+
 plottrans <- function(rcpmeObj, longdata){ # plotte la transfo crude / gaussian
   varsformu = all.vars(rcpmeObj$formula)
   
@@ -269,30 +338,50 @@ transY <- function(rcpmeObj, longdata){ # calcule les scores transformés à par
 #' @export
 #'
 #' @examples
-
-
-rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 0.1, nbnodes = 10, param = NULL, model = "test", link = "linear"){
+rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 0.1, nbnodes = 10, param = NULL, model = "test", link = "linear", statut = NULL){
   
   if (covariate == "NULL" & REadjust != "no") stop("Need a covariate to adjust random effects variance structure.")
   if (REadjust == "prop") stop("It has not been implemented yet. Sorry for the inconvenience...")
-  lparam = 12 + 4*(link=="splines") + (covariate != "NULL")*(4*(REadjust=="no")+ 5*(REadjust=="prop")+11*(REadjust=="yes"))
-  # lparam = 12 + 5*(link=="splines") + (covariate != "NULL")*(4*(REadjust=="no")+ 5*(REadjust=="prop")+11*(REadjust=="yes"))
+  lparam = 12 +2*(model == "isplines") + 4*(link=="splines") + (covariate != "NULL")*(4*(REadjust=="no")+ 5*(REadjust=="prop")+11*(REadjust=="yes"))
   if (!is.null(param) & (length(param) != lparam)) stop(paste("Initial parameters vector must be a vector of size ", lparam, ".", sep = ""))
-  rk1 = 4 + (link == "linear")
-  # rk1 = 5
-  rk2 = rk1 + 7 + (covariate !="NULL")*(4*(REadjust=="no")+ 5*(REadjust=="prop")+11*(REadjust=="yes"))
+  rk0 = 3 - (model == "isplines")
+  rk1 = 4 + (link == "linear") - (model == "isplines")
+  rk2 = rk1 + 7 + (covariate !="NULL")*(4*(REadjust=="no") + 5*(REadjust=="prop") + 11*(REadjust=="yes"))
   
   # =============================================
   
-  scorevar = longdata[,all.vars(formu)[1]]
-  timevar = longdata[,all.vars(formu)[2]]
-  groupvar = longdata[,all.vars(formu)[3]]
-  if (covariate != "NULL") adjustvar = longdata[,covariate]
-  ngroupvar = rep(seq(length(unique(groupvar))), by(longdata,groupvar,function(x){return(dim(x)[[1]])}))
-  longdata <- cbind(longdata, ngroupvar)
+  if(!is.null(statut)){
+    # on construit la base control et la base cas
+    longdata1 = longdata[longdata[statut] == 0,]
+    longdata2 = longdata[longdata[statut] == 1,]
+    
+    # on cree les objets pr les controls
+    scorevar = longdata1[,all.vars(formu)[1]]
+    timevar = longdata1[,all.vars(formu)[2]]
+    groupvar = longdata1[,all.vars(formu)[3]]
+    ngroupvar = rep(seq(length(unique(groupvar))), by(longdata1,groupvar,function(x){return(dim(x)[[1]])}))
+    longdata <- cbind(longdata1, ngroupvar)
+    objtrans <- datatrans(scorevar, ngroupvar, link)
+    
+    # et pour les cas
+    scorevar2 = longdata2[,all.vars(formu)[1]]
+    timevar2 = longdata2[,all.vars(formu)[2]]
+    groupvar2 = longdata2[,all.vars(formu)[3]]
+    ngroupvar2 = rep(seq(length(unique(groupvar2))), by(longdata2,groupvar2,function(x){return(dim(x)[[1]])}))
+    longdata2 <- cbind(longdata2, ngroupvar2)
+    objtrans2 <- datatrans(scorevar2, ngroupvar2, link)
+  }
   
-  objtrans <- datatrans(scorevar, ngroupvar, link)
+  if(is.null(statut)){
+    scorevar = longdata[,all.vars(formu)[1]]
+    timevar = longdata[,all.vars(formu)[2]]
+    groupvar = longdata[,all.vars(formu)[3]]
+    ngroupvar = rep(seq(length(unique(groupvar))), by(longdata,groupvar,function(x){return(dim(x)[[1]])}))
+    longdata <- cbind(longdata, ngroupvar)
+    objtrans <- datatrans(scorevar, ngroupvar, link)
+  }
 
+  if (covariate != "NULL") adjustvar = longdata[,covariate]
   ghcoeff <- gauher(nbnodes)
   nodes <- sqrt(2) * ghcoeff$x
   weights <- ghcoeff$w / sqrt(pi)
@@ -336,9 +425,21 @@ rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 
       param <- c(param[-5], rep(1,5))
       # param <- c(param, rep(1,5))
     }
+    
+    if (model == "isplines"){
+      param <- c(param[-3], rep(2,3))
+    }
+  }
+
+
+  if(is.null(statut)){
+    opt <- marqLevAlg(b=param,fn=lvsblNCgen,data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}),nq=nbnodes,grp=ngroupvar,weights=weights, nodes=nodes, scorevar = all.vars(formu)[1], timevar = all.vars(formu)[2], covariate = covariate, REadjust = REadjust, model = model, link = link, objtrans = objtrans, gamma = gamma)
   }
   
-  opt <- marqLevAlg(b=param,fn=lvsblNCgen,data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}),nq=nbnodes,grp=ngroupvar,weights=weights, nodes=nodes, scorevar = all.vars(formu)[1], timevar = all.vars(formu)[2], covariate = covariate, REadjust = REadjust, model = model, link = link, objtrans = objtrans, gamma = gamma)
+  if(!is.null(statut)){
+    # optimisation du melange
+    opt <- marqLevAlg(b=param,fn=lvsblclass,data1=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}),data2=by(longdata2,longdata2[,"ngroupvar2"],function(x){return(x)}),nq=nbnodes,grp=ngroupvar,grp2=ngroupvar2,weights=weights, nodes=nodes, scorevar = all.vars(formu)[1], timevar = all.vars(formu)[2], covariate = covariate, REadjust = REadjust, model = model, link = link, objtrans = objtrans, objtrans2 = objtrans2, gamma = gamma)
+  }
   
   # OUT : fixed parameters ===========================================================================================
   
@@ -356,10 +457,18 @@ rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 
     invhessian <- diag(lparam)
     invhessian[upper.tri(invhessian, diag=TRUE)] <- opt$v
     invhessian <- invhessian + t(invhessian) - diag(diag(invhessian))
-    tab <- cbind(opt$b[c(1,2,3,4)],sqrt(diag(invhessian))[c(1,2,3,4)])
-    tab <- cbind(tab, tab[,1]-1.96*tab[,2],tab[,1]+1.96*tab[,2], tab[,1]/tab[,2], 1-pchisq(tab[,1]**2/tab[,2]**2,df=1))
-    tab[c(3,4),c(5,6)] = NA
-    rownames(tab) <- c("beta0", "beta1", "beta2", "mutau")
+    if (model == "isplines"){
+      tab <- cbind(c(opt$b[c(1,2,rk0+1)]),c(sqrt(diag(invhessian))[c(1,2,rk0+1)]))
+      tab <- cbind(tab, tab[,1]-1.96*tab[,2],tab[,1]+1.96*tab[,2], tab[,1]/tab[,2], 1-pchisq(tab[,1]**2/tab[,2]**2,df=1))
+      tab[3,c(5,6)] = NA
+      rownames(tab) <- c("beta0", "beta1", "mutau")
+    }
+    if (model != "isplines"){
+      tab <- cbind(opt$b[c(1,2,3,4)],sqrt(diag(invhessian))[c(1,2,3,4)])
+      tab <- cbind(tab, tab[,1]-1.96*tab[,2],tab[,1]+1.96*tab[,2], tab[,1]/tab[,2], 1-pchisq(tab[,1]**2/tab[,2]**2,df=1))
+      tab[c(3,4),c(5,6)] = NA
+      rownames(tab) <- c("beta0", "beta1", "beta2", "mutau")
+    }
     colnames(tab) <- c("par", "se(par)", "ICinf", "ICsup", "Wald stat.", "pvalue")
   }
   
@@ -407,6 +516,28 @@ rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 
   
   return(list("call" = as.list(match.call()), "Loglik" = opt$fn.value, "formula" = formu, "fixed" = round(tab,3), "sdres"=seps, "VarEA" = VarEA, optpar= opt$b, "covariate" = covariate, "REadjust" = REadjust, "invhessian" = invhessian, "conv" = opt$istop, "init" = param, "model" = model, "gamma" = gamma, "link" = link))
 }
+
+
+lvsblclass <- function(param, data1, data2, nq, grp, grp2, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, objtrans2, gamma){
+
+  rk0 = 3 - (model == "isplines")
+  rk1 = 4 + (link == "linear") - (model == "isplines")
+  rk2 = rk1 + 7 + (covariate !="NULL")*(4*(REadjust=="no")+ 5*(REadjust=="prop")+11*(REadjust=="yes"))
+  
+  # on vire les parametres inutiles ds l'esti du modele lineaire
+  if (link == "linear"){
+    param2 <- param[c(1,2, rk1, rk1+1, rk1+2, rk1+3)]
+  }
+  if (link == "isplines"){ # à finir celui ci...
+    param2 <- param[c(1,2,rk1,rk1+1,rk1+2,rk1+3)]
+  }
+  
+  loglik1 <- lvsblNCgen(param, data2, nq, grp2, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans2, gamma)
+  loglik2 <- lvsbllin(param2, data1, nq, grp, weights, nodes, scorevar, timevar, link, objtrans)
+  
+  return(loglik1+loglik2)
+}
+
 
 #' Random Effects estimate
 #'
@@ -677,7 +808,14 @@ bircpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma 
                     hats[c(rk2+10,rk2+13,rk2+16)], 0, hats[c(rk2+2,rk2+4,rk2+5)], 0,
                     hats[c(rk2+11,rk2+14,rk2+17)], 0, hats[c(rk2+3,rk2+5,rk2+6)], 0,
                     rep(0,3), hats[rk2+8], rep(0,3), hats[rk2+7]), byrow = TRUE, nrow = 8)
-      esti <- list("call" = NULL, "Loglik" = NULL, "formula" = formu, "fixed" = NULL, "sdres"=NULL, "VarEA" = B, "optpar"= hats, "covariate" = NULL, "REadjust" = NULL, "invhessian" = NULL, "conv" = NULL, "init" = NULL, "niter" = NULL, "model" = model, "gamma" = gamma)
+      paramSpl <- NULL
+      if (link1 == "splines"){paramSpl <- c(paramSpl, opt$b[(rk3+1):(rk3+5)])}
+      if (link2 == "splines"){paramSpl <- c(paramSpl, opt$b[(rk4+1):(rk4+5)])}
+      sdres <- c(1,1)
+      if (link1 == "linear") sdres[1] = sqrt(hats[rk1])
+      if (link2 == "linear") sdres[2] = sqrt(hats[rk2])
+      esti <- list("call" = NULL, "Loglik" = NULL, "formula" = formu, "fixed" = NULL, "sdres"=sdres, "VarEA" = B, "optpar"= hats, "covariate" = NULL, "REadjust" = NULL, "invhessian" = NULL, "conv" = NULL, "init" = NULL, "niter" = NULL, "model" = model, "gamma" = gamma, "link1" = link1, "link2" = link2, "paramSpl" = paramSpl)
+      remove(paramSpl, sdres)
       RE <- REestimate(esti, longdata, var = TRUE, onlytau = TRUE);
       RE <- lapply(RE, function(x){return(list("par"=x$par, "var"=chol(matrix(c(x$var[1], x$var[2], x$var[2], x$var[3]), nrow=2))))})
       ghcoeff <- gauherm(10, 2)

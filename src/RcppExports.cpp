@@ -33,6 +33,34 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// mspline
+arma::colvec mspline(double x, double tmin, double tmax, double tint);
+RcppExport SEXP _rcpm_mspline(SEXP xSEXP, SEXP tminSEXP, SEXP tmaxSEXP, SEXP tintSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type x(xSEXP);
+    Rcpp::traits::input_parameter< double >::type tmin(tminSEXP);
+    Rcpp::traits::input_parameter< double >::type tmax(tmaxSEXP);
+    Rcpp::traits::input_parameter< double >::type tint(tintSEXP);
+    rcpp_result_gen = Rcpp::wrap(mspline(x, tmin, tmax, tint));
+    return rcpp_result_gen;
+END_RCPP
+}
+// ispline
+arma::colvec ispline(double x, double tmin, double tmax, double tint);
+RcppExport SEXP _rcpm_ispline(SEXP xSEXP, SEXP tminSEXP, SEXP tmaxSEXP, SEXP tintSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type x(xSEXP);
+    Rcpp::traits::input_parameter< double >::type tmin(tminSEXP);
+    Rcpp::traits::input_parameter< double >::type tmax(tmaxSEXP);
+    Rcpp::traits::input_parameter< double >::type tint(tintSEXP);
+    rcpp_result_gen = Rcpp::wrap(ispline(x, tmin, tmax, tint));
+    return rcpp_result_gen;
+END_RCPP
+}
 // dmvnrmarma1d
 double dmvnrmarma1d(arma::rowvec x, arma::rowvec mean, arma::mat sigma, bool logd);
 RcppExport SEXP _rcpm_dmvnrmarma1d(SEXP xSEXP, SEXP meanSEXP, SEXP sigmaSEXP, SEXP logdSEXP) {
@@ -107,6 +135,26 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< List >::type objtrans(objtransSEXP);
     Rcpp::traits::input_parameter< double >::type gamma(gammaSEXP);
     rcpp_result_gen = Rcpp::wrap(lvsblNCgen(param, data, nq, grp, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, gamma));
+    return rcpp_result_gen;
+END_RCPP
+}
+// lvsbllin
+double lvsbllin(NumericVector param, List data, int nq, NumericVector grp, NumericVector weights, NumericVector nodes, String scorevar, String timevar, String link, List objtrans);
+RcppExport SEXP _rcpm_lvsbllin(SEXP paramSEXP, SEXP dataSEXP, SEXP nqSEXP, SEXP grpSEXP, SEXP weightsSEXP, SEXP nodesSEXP, SEXP scorevarSEXP, SEXP timevarSEXP, SEXP linkSEXP, SEXP objtransSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type param(paramSEXP);
+    Rcpp::traits::input_parameter< List >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< int >::type nq(nqSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type grp(grpSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type weights(weightsSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type nodes(nodesSEXP);
+    Rcpp::traits::input_parameter< String >::type scorevar(scorevarSEXP);
+    Rcpp::traits::input_parameter< String >::type timevar(timevarSEXP);
+    Rcpp::traits::input_parameter< String >::type link(linkSEXP);
+    Rcpp::traits::input_parameter< List >::type objtrans(objtransSEXP);
+    rcpp_result_gen = Rcpp::wrap(lvsbllin(param, data, nq, grp, weights, nodes, scorevar, timevar, link, objtrans));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -220,10 +268,13 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_rcpm_dn", (DL_FUNC) &_rcpm_dn, 3},
     {"_rcpm_dmvnrmarma", (DL_FUNC) &_rcpm_dmvnrmarma, 4},
+    {"_rcpm_mspline", (DL_FUNC) &_rcpm_mspline, 4},
+    {"_rcpm_ispline", (DL_FUNC) &_rcpm_ispline, 4},
     {"_rcpm_dmvnrmarma1d", (DL_FUNC) &_rcpm_dmvnrmarma1d, 4},
     {"_rcpm_ScoreInd", (DL_FUNC) &_rcpm_ScoreInd, 15},
     {"_rcpm_transfY", (DL_FUNC) &_rcpm_transfY, 4},
     {"_rcpm_lvsblNCgen", (DL_FUNC) &_rcpm_lvsblNCgen, 14},
+    {"_rcpm_lvsbllin", (DL_FUNC) &_rcpm_lvsbllin, 10},
     {"_rcpm_bilvsblNC", (DL_FUNC) &_rcpm_bilvsblNC, 20},
     {"_rcpm_IndRePostDis", (DL_FUNC) &_rcpm_IndRePostDis, 8},
     {"_rcpm_IndRePostDis2", (DL_FUNC) &_rcpm_IndRePostDis2, 8},

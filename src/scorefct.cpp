@@ -29,6 +29,61 @@ arma::vec dmvnrmarma(arma::mat x, arma::rowvec mean, arma::mat sigma, bool logd 
   return(out);
 }
 
+
+
+// mspline <- function(x, tmin, tmax, tint){
+//   t <- c(rep(tmin,3),tint,rep(tmax,3))
+//   mspl <- rep(0,4)
+//   mspl[1] <- (3*(t[4]-x)^2/((t[4]-t[1])*(t[4]-t[2])*(t[4]-t[3])))*(x<t[4])
+//   mspl[2] <- (3*(x-t[2])*(t[4]-x)/((t[5]-t[2])*(t[4]-t[2])*(t[4]-t[3])) + 3*(t[5]-x)*(x-t[3])/((t[5]-t[2])*(t[5]-t[3])*(t[4]-t[3])))*(x<t[4]) + (3*(t[5]-x)^2/((t[5]-t[2])*(t[5]-t[3])*(t[5]-t[4])))*(x>=t[4])
+//   mspl[3] <- (3*(x-t[3])^2/((t[6]-t[3])*(t[5]-t[3])*(t[4]-t[3])))*(x<t[4]) + (3*(x-t[3])*(t[5]-x)/((t[6]-t[3])*(t[5]-t[3])*(t[5]-t[4])) + 3*(t[6]-x)*(x-t[4])/((t[6]-t[3])*(t[6]-t[4])*(t[5]-t[4])))*(x>=t[4])
+//   mspl[4] <- (3*(x-t[4])^2/((t[7]-t[4])*(t[6]-t[4])*(t[5]-t[4])))*(x>=t[4])
+//   
+//   return(mspl)
+// }
+
+// [[Rcpp::depends("RcppArmadillo")]]
+// [[Rcpp::export]]
+arma::colvec mspline(double x, double tmin, double tmax, double tint){
+  arma::vec t = arma::zeros<arma::vec>(7);
+  t(0) = tmin; t(1) = tmin; t(2) = tmin; t(3) = tint;
+  t(4) = tmax; t(5) = tmax; t(6) = tmax;
+  
+  arma::colvec mspl = arma::zeros<arma::colvec>(4);
+  
+  mspl(0) = (3*pow((t(3)-x),2)/((t(3)-t(0))*(t(3)-t(1))*(t(3)-t(2))))*(x<t(3));
+  mspl(1) = (3*(x-t(1))*(t(3)-x)/((t(4)-t(1))*(t(3)-t(1))*(t(3)-t(2))) + 3*(t(4)-x)*(x-t(2))/((t(4)-t(1))*(t(4)-t(2))*(t(3)-t(2))))*(x<t(3)) + (3*pow((t(4)-x),2)/((t(4)-t(1))*(t(4)-t(2))*(t(4)-t(3))))*(x>=t(3));
+  mspl(2) = (3*pow((x-t(2)),2)/((t(5)-t(2))*(t(4)-t(2))*(t(3)-t(2))))*(x<t(3)) + (3*(x-t(2))*(t(4)-x)/((t(5)-t(2))*(t(4)-t(2))*(t(4)-t(3))) + 3*(t(5)-x)*(x-t(3))/((t(5)-t(2))*(t(5)-t(3))*(t(4)-t(3))))*(x>=t(3));
+  mspl(3) = (3*pow((x-t(3)),2)/((t(6)-t(3))*(t(5)-t(3))*(t(4)-t(3))))*(x>=t(3));
+  
+  return mspl;
+}
+
+// [[Rcpp::depends("RcppArmadillo")]]
+// [[Rcpp::export]]
+arma::colvec ispline(double x, double tmin, double tmax, double tint){
+  arma::vec t = arma::zeros<arma::vec>(7);
+  t(0) = tmin; t(1) = tmin; t(2) = tmin; t(3) = tint;
+  t(4) = tmax; t(5) = tmax; t(6) = tmax;
+  
+  arma::colvec ispl = arma::zeros<arma::colvec>(4);
+  arma::colvec mspl = mspline(x,tmin,tmax,tint);
+  
+  if (x >= tmin & x <= tmax){
+    ispl(0) = (((x-t(0))*mspl(0) + (t(4)-x)*mspl(1) + (x-t(1))*mspl(1) + (t(5)-x)*mspl(2) + (x-t(2))*mspl(2) + (t(6)-x)*mspl(3))/3)*(x<t(3)) + 1*(x>=t(3));
+    ispl(1) = (((x-t(1))*mspl(1) + (t(5)-x)*mspl(2) + (x-t(2))*mspl(2) + (t(6)-x)*mspl(3))/3) + ((x-t(3))*mspl(3)/3)*(x>=t(3));
+    ispl(2) = ((x-t(2))*mspl(2) + (t(6)-x)*mspl(3))/3 + ((x-t(3))*mspl(3)/3)*(x>=t(3));
+    ispl(3) = ((x-t(3))*mspl(3)/3)*(x>=t(3));
+  }
+  
+  IntegerVector idx = IntegerVector::create(1,2,3);
+  
+  arma::colvec ispl2 = arma::zeros<arma::colvec>(3);
+  ispl2(0) = ispl(1); ispl2(1) = ispl(2); ispl2(2) = ispl(3);
+  
+  return ispl2;
+}
+
 // [[Rcpp::depends("RcppArmadillo")]]
 // [[Rcpp::export]]
 double dmvnrmarma1d(arma::rowvec x, arma::rowvec mean, arma::mat sigma, bool logd = false) {
@@ -210,15 +265,18 @@ arma::mat transfY(arma::colvec Y, String link, arma::colvec param, List objtrans
 // [[Rcpp::export]]
 double lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, NumericVector weights, NumericVector nodes, String scorevar, String timevar, String covariate, String REadjust, String model, String link, List objtrans, double gamma){
   
-  //// extraction des parametres selon les cas (link) et (covariate & REadjust)
+  //// extraction des parametres selon les cas (link, cov/REadjust, model)
   // CP trajectory parameters
-  double Beta0=param(0); double Beta1=param(1); double Beta2=param(2); double tau=param(3);
+  double Beta0=param(0); double Beta1=param(1);
+  int rk0 = 2; double Beta2 = param(rk0); 
+  if (model == "isplines") {rk0 = 1; Beta2 = -1;}
+  double tau=param(rk0+1);
   arma::colvec Betas = arma::zeros<arma::colvec>(3);
   Betas(0) = Beta0; Betas(1) = Beta1; Betas(2) = Beta2;
   
   // variance parameters
-  double sigma = 1; int rk1 = 3; 
-  if (link == "linear") {sigma = param(4); rk1 = 4;} 
+  double sigma = 1; int rk1 = rk0+1; 
+  if (link == "linear") {rk1 = rk0+2; sigma = param(rk1);} 
   // double sigma = param(4); int rk1 = 4;
   arma::mat U = arma::zeros<arma::mat>(3,3);
   arma::mat B = arma::zeros<arma::mat>(3,3);
@@ -232,9 +290,19 @@ double lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, Num
   if ((covariate != "NULL") & (REadjust == "yes")) {rk2 = rk1 + 18;}
   if ((covariate != "NULL") & (REadjust == "prop")) {rk2 = rk1 + 12;}
   arma::colvec paramtrans = arma::zeros<arma::colvec>(5);
+  
+  int rk3 = rk2; // isplines index
   if (link == "splines"){
+    rk3 = rk2 + 5;
     IntegerVector idx = IntegerVector::create(rk2+1, rk2+2, rk2+3, rk2+4, rk2+5);
-    paramtrans = pow(as<arma::colvec>(param[idx]),2);
+    paramtrans = pow(as<arma::rowvec>(param[idx]),2);
+  }
+  
+  // ispline model parameters
+  arma::rowvec paramspl = arma::ones<arma::rowvec>(3);
+  if (model == "isplines"){
+    IntegerVector idx = IntegerVector::create(rk3+1, rk3+2, rk3+3);
+    paramspl = pow(as<arma::rowvec>(param[idx]),2);
   }
  
   int N = max(grp);
@@ -259,12 +327,19 @@ double lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, Num
       if (covariate == "NULL"){
         // if no covariate
         arma::mat Zk = arma::ones<arma::mat>(lgt,3);
-        if (model == "test"){Zk.col(1) = timeNoNA;}
+        if ((model == "test") | (model == "isplines")){Zk.col(1) = timeNoNA;}
         arma::colvec muk = arma::zeros<arma::colvec>(lgt);
         arma::mat Vk = arma::zeros<arma::mat>(lgt,lgt);
         for (int k = 0; k < nq; ++k){
           if (model == "bw"){Zk.col(1) = timeNoNA - arma::ones<arma::colvec>(lgt)*(tau+Utau*nodes(k));}
-          Zk.col(2) = pow(pow(timeNoNA - arma::ones<arma::colvec>(lgt)*(tau+Utau*nodes(k)),2)+gamma,0.5);
+          if ((model == "bw") | (model == "test")) {Zk.col(2) = pow(pow(timeNoNA - arma::ones<arma::colvec>(lgt)*(tau+Utau*nodes(k)),2)+gamma,0.5);}
+          if (model == "isplines") {
+            arma::mat basespl = arma::zeros<arma::mat>(3,lgt);
+            for (int l = 0; l<lgt; l++){
+              basespl.col(l) = ispline(timeNoNA(l) - tau - Utau*nodes(k), 0, 20, 5);
+            }
+            Zk.col(2) = trans(paramspl * basespl);
+            }
           muk = Zk * Betas;
           Vk = (Zk * B) * trans(Zk) + pow(sigma,2) * arma::eye<arma::mat>(lgt,lgt);
           double f = dmvnrmarma1d(trans(tY.col(0)), trans(muk), Vk);
@@ -310,6 +385,69 @@ double lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, Num
   }
   return out;
 }
+
+
+// [[Rcpp::depends("RcppArmadillo")]]
+// [[Rcpp::export]]
+double lvsbllin(NumericVector param, List data, int nq, NumericVector grp, NumericVector weights, NumericVector nodes, String scorevar, String timevar, String link, List objtrans){
+  
+  //// extraction des parametres selon les cas (link) et (covariate & REadjust)
+  // CP trajectory parameters
+  double Beta0=param(0); double Beta1=param(1);
+  arma::colvec Betas = arma::zeros<arma::colvec>(2);
+  Betas(0) = Beta0; Betas(1) = Beta1;
+  
+  // variance parameters
+  double sigma = 1; int rk1 = 1; 
+  if (link == "linear") {rk1 = 2; sigma = param(rk1);} 
+  arma::mat U = arma::zeros<arma::mat>(2,2);
+  arma::mat B = arma::zeros<arma::mat>(2,2);
+  U(0,0) = param(rk1+1); U(0,1) = param(rk1+2); U(1,1) = param(rk1+3);
+  B = trans(U) * U;
+  
+  // link parameters
+  int rk2 = rk1 + 3;
+  arma::colvec paramtrans = arma::zeros<arma::colvec>(5);
+  if (link == "splines"){
+    IntegerVector idx = IntegerVector::create(rk2+1, rk2+2, rk2+3, rk2+4, rk2+5);
+    paramtrans = pow(as<arma::rowvec>(param[idx]),2);
+  }
+  
+  int N = max(grp);
+  double out = 0;
+  for (int i = 0; i<N; i++){
+    
+    DataFrame datai = as<DataFrame>(data[i]);
+    NumericVector score = datai[scorevar];
+    LogicalVector indNoNA = !is_na(score);
+    arma::colvec scoreNoNA = as<arma::colvec>(score[indNoNA]);
+    
+    int lgt = scoreNoNA.n_elem;
+    double res = 0;
+    
+    if (lgt > 0){
+      
+      NumericVector time = datai[timevar];
+      arma::colvec timeNoNA = as<arma::colvec>(time[indNoNA]);
+      List objtransi = as<List>(objtrans[i]);
+      arma::mat tY = transfY(scoreNoNA, link, paramtrans, objtransi);
+      
+      // if no covariate
+      arma::mat Zk = arma::ones<arma::mat>(lgt,2); Zk.col(1) = timeNoNA;
+      arma::colvec muk = arma::zeros<arma::colvec>(lgt);
+      arma::mat Vk = arma::zeros<arma::mat>(lgt,lgt);
+      for (int k = 0; k < nq; ++k){
+        muk = Zk * Betas;
+        Vk = (Zk * B) * trans(Zk) + pow(sigma,2) * arma::eye<arma::mat>(lgt,lgt);
+        double f = dmvnrmarma1d(trans(tY.col(0)), trans(muk), Vk);
+        res = res + (f * weights(k));
+      }
+      out = out + log(res) + sum(log(tY.col(1)));
+    }
+  }
+  return out;
+}
+
 
 // [[Rcpp::depends("RcppArmadillo")]]
 // [[Rcpp::export]]

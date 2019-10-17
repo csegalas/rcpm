@@ -6,7 +6,7 @@
 \usage{
 rcpme(longdata, formu, covariate = "NULL", REadjust = "no",
   gamma = 0.1, nbnodes = 10, param = NULL, model = "test",
-  link = "linear")
+  link = "linear", statut = NULL)
 }
 \arguments{
 \item{longdata}{A longitudinal dataset containing all variables used in the formula \code{formu}}
