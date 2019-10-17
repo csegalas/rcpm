@@ -142,7 +142,7 @@ Score <- function(tau,estis,estiVarEA,longdata,newnodes,newweights,nbnodes,nd,gr
 #' @param longdata A longitudinal dataset containing all variables used in the formula \code{formu}
 #' @param formu A formula object describing which variables are to be used. The formula has to be of the following form \code{markervar ~ scorevar | groupvar} for the function to work.
 #' @param gamma A smoothing parameter for the transition on the changepoint date. 0.1 by default.
-#' @param nbnodes Number of pseudo-adaptive gaussian quadrature nodes used to compute the numeric integrals. 5 by default.
+#' @param nbnodes Number of pseudo-adaptive Gaussian quadrature nodes used to compute the numeric integrals. 5 by default.
 #' @param nbpert Number of perturbations used to compute the empirical p-value. 500 by default.
 #' @param covariate An eventual covariate dependence of all the parameters in the model. Not implemented yet.
 #'
