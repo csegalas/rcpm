@@ -68,7 +68,7 @@ geneData <- function(n = 100, hyp = "null", params, pNA = 0, DO = 0, vis = c(0, 
       B = matrix(c(sigmab0**2, sigmab01, sigmab01, sigmab1**2), nrow = 2)
       bis <- matrix(NA, nrow = n, ncol = 2)
       for (i in seq(n)){
-        # génération des effets aléatoires pour l'individu i
+        # generation des effets aleatoires pour l'individu i
         bis[i,] <- rmvnorm(1, mean = c(0,0), sigma = B)
         donnees[((nbvis*(i-1))+1):(nbvis*i),1] <- i
         donnees[((nbvis*(i-1))+1):(nbvis*i),2] <- vis
@@ -95,7 +95,7 @@ geneData <- function(n = 100, hyp = "null", params, pNA = 0, DO = 0, vis = c(0, 
       B = matrix(c(sigmab0**2, sigmab01, 0, sigmab01, sigmab1**2, 0, 0, 0, sigmabtau**2), nrow = 3)
       bis <- matrix(NA, nrow = n, ncol = 3)
       for (i in seq(n)){
-        # génération des effets aléatoires pour l'individu i
+        # generation des effets aleatoires pour l'individu i
         bis[i,] <- rmvnorm(1, mean = c(0,0,0), sigma = B)
         donnees[((nbvis*(i-1))+1):(nbvis*i),1] <- i
         donnees[((nbvis*(i-1))+1):(nbvis*i),2] <- vis
@@ -125,7 +125,7 @@ geneData <- function(n = 100, hyp = "null", params, pNA = 0, DO = 0, vis = c(0, 
       B = matrix(c(sigmab0**2, sigmab01, sigmab02, 0, sigmab01, sigmab1**2, sigmab12, 0, sigmab02, sigmab12, sigmab2**2, 0, 0, 0, 0, sigmabtau**2), nrow = 4)
       bis <- matrix(NA, nrow = n, ncol = 4)
       for (i in seq(n)){
-        # génération des effets aléatoires pour l'individu i
+        # generation des effets aleatoires pour l'individu i
         bis[i,] <- rmvnorm(1, mean = c(0,0,0,0), sigma = B)
         donnees[((nbvis*(i-1))+1):(nbvis*i),1] <- i
         donnees[((nbvis*(i-1))+1):(nbvis*i),2] <- vis
@@ -229,7 +229,7 @@ geneDataSpl  <- function(n = 100, params, pNA = 0, DO = 0, vis = c(0, 3, 6, 9, 1
       statut = rbinom(1, 1, pcas)
       donnees[((nbvis*(i-1))+1):(nbvis*i),4] <- statut 
       
-      # génération des effets aléatoires pour l'individu i
+      # generation des effets aleatoires pour l'individu i
       bis[i,] <- rmvnorm(1, mean = c(0,0,0,0), sigma = B)
       donnees[((nbvis*(i-1))+1):(nbvis*i),1] <- i
       donnees[((nbvis*(i-1))+1):(nbvis*i),2] <- vis
@@ -303,7 +303,7 @@ datatrans <- function(Y, ngroupvar, trans){
   }
 }
 
-transY <- function(rcpmeObj, longdata){ # calcule les scores transformés à partir de l'esti Spl d'un modèle
+transY <- function(rcpmeObj, longdata){ # calcule les scores transformes a partir de l'esti Spl d'un modele
   varsformu = all.vars(rcpmeObj$formula)
   if (length(varsformu) == 3){  # univ
     scorevar = varsformu[1]
@@ -331,7 +331,7 @@ transY <- function(rcpmeObj, longdata){ # calcule les scores transformés à par
 #' @param gamma A numeric parameter indicating how smooth the trajectory is on the changepoint date. It should be small according to the time variable scale. Default to 0.1.
 #' @param nbnodes A numeric parameter indicating how many nodes are to be used for the gaussian quadrature for numerical integration. Default to 10.
 #' @param param An optional vector parameter that contains initial parameter for the optimization of the log-likelihood. Default to NULL.
-#' @param model An optional string indicating which formulation of the random changepoint exists. The first is `test` which is used by the `testRCPMM` function, the second is `bw` for the Bacon-Watts formulation of the model, the third is `isplines` for the I-spline model. When used for estimation purpose, you should either `bw` or `isplines` which has better interpretability properties. Default to `bw`
+#' @param model An optional string indicating which formulation of the random changepoint exists. The first model, `test`, is \eqn{Y_ij = \beta_{0i} + \beta_{1i}t_{ij} + \beta_{2i}\sqrt{(t_{ij}-\tau_i)^2+\gamma} + \epsilon_{ij}} used by the `testRCPMM` function. The second is `bw` for the Bacon-Watts formulation of the model \eqn{Y_ij = \beta_{0i} + \beta_{1i}(t_{ij}-\tau_i) + \beta_{2i}\sqrt{(t_{ij}-\tau_i)^2+\gamma} + \epsilon_{ij}}. The third option is `isplines` for the I-spline model. When used for estimation purpose, you should either `bw` or `isplines` which has clear interpretability properties. Default to `bw`
 #' @param link An optional string indicating which link function is to be used. This link function is used to deal with non-gaussian data. With `link=splines` the model estimates an appropriate I-spline link function `g` so that `g(scorevar)` is a gaussian variable. If data is already gaussian, you can chose `link=linear` so that no link function will be estimated. Default to `linear`.
 #' @param statut An optional string indicating a binary variable from which two class are considered: a linear class for subjects with \code{statut=0} and a random changepoint class for subjects with \code{statut=1}. Default to NULL.
 #'
@@ -519,24 +519,36 @@ rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 
 }
 
 
-lvsblclass <- function(param, data1, data2, nq, grp, grp2, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, objtrans2, gamma){
+lvsblclass <- function(param, data1, data2, nq, grp, grp2, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, objtrans2, gamma, latent = FALSE){
 
-  rk0 = 3 - (model == "isplines")
   rk1 = 4 + (link == "linear") - (model == "isplines")
-  rk2 = rk1 + 7 + (covariate !="NULL")*(4*(REadjust=="no")+ 5*(REadjust=="prop")+11*(REadjust=="yes"))
-  
+
   # on vire les parametres inutiles ds l'esti du modele lineaire
   if (link == "linear"){
-    param2 <- param[c(1,2, rk1, rk1+1, rk1+2, rk1+3)]
+    param2 <- param[c(1,2, rk1, rk1+1, rk1+2, rk1+4)]
   }
-  if (link == "isplines"){ # à finir celui ci...
+  if (link == "isplines"){ # a finir celui ci...
     param2 <- param[c(1,2,rk1,rk1+1,rk1+2,rk1+3)]
   }
   
   loglik1 <- lvsblNCgen(param, data2, nq, grp2, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans2, gamma)
-  loglik2 <- lvsbllin(param2, data1, nq, grp, weights, nodes, scorevar, timevar, link, objtrans)
   
-  return(loglik1+loglik2)
+  #probi = 0
+  #if (latent = TRUE){
+  #  probi = ()
+  #}
+  
+  # loglik2 <- lvsbllin(param2, data1, nq, grp, weights, nodes, scorevar, timevar, link, objtrans)
+  loglik2 <- lvsbllin(param2, data1, grp, scorevar, timevar, link, objtrans)
+  out <- loglik1 + loglik2
+  # 
+  # if (latent = TRUE){
+  #   probi <- 
+  #   loglik3 <- lvsblNCgen(param, data1, nq, grp, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, gamma)
+  #   out = loglik1 + ()
+  # }
+  
+  return(out)
 }
 
 
@@ -747,8 +759,8 @@ bircpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma 
   
   # estimation of univariate models and initialization
   print("I need to estimate both univariate models first...")
-  rcpmeObj1 <- rcpme(longdata, as.formula(paste(all.vars(formu)[1], "~", all.vars(formu)[3], "|", all.vars(formu)[4])), covariate = covariate, REadjust = REadjust, gamma = gamma, nbnodes = 20, model = model, link = link1)
-  rcpmeObj2 <- rcpme(longdata, as.formula(paste(all.vars(formu)[2], "~", all.vars(formu)[3], "|", all.vars(formu)[4])), covariate = covariate, REadjust = REadjust, gamma = gamma, nbnodes = 20, model = model, link = link2)
+  rcpmeObj1 <- rcpme(longdata, as.formula(paste(all.vars(formu)[1], "~", all.vars(formu)[3], "|", all.vars(formu)[4])), covariate = covariate, REadjust = REadjust, gamma = gamma, nbnodes = 20, model = model, link = link1, statut = NULL)
+  rcpmeObj2 <- rcpme(longdata, as.formula(paste(all.vars(formu)[2], "~", all.vars(formu)[3], "|", all.vars(formu)[4])), covariate = covariate, REadjust = REadjust, gamma = gamma, nbnodes = 20, model = model, link = link2, statut = NULL)
   if ((rcpmeObj1$conv > 1) | (rcpmeObj2$conv > 1)) warning("One of the two univariate model did not converge...")
   
   # initialization
@@ -781,7 +793,7 @@ bircpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma 
       opt <- marqLevAlg::marqLevAlg(b=param, fn=bilvsblNC, data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}), nq=nbnodes, adapt = adapt, grp=ngroupvar, weights=weights,  nodes=nodes, newnodes = newnodes, newweights = newweights, scorevar1 = all.vars(formu)[1], scorevar2 = all.vars(formu)[2], timevar = all.vars(formu)[3], covariate = covariate, REadjust = REadjust, model = model, link1 = link1, link2 = link2, objtrans1 = objtrans1, objtrans2 = objtrans2, gamma = gamma)
     }
     else {
-      opt <- marqLevAlgParallel::marqLevAlg(b=param, fn=bilvsblNC, data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}), nq=nbnodes, adapt = adapt, grp=ngroupvar, weights=weights,  nodes=nodes, newnodes = newnodes, newweights = newweights, scorevar1 = all.vars(formu)[1], scorevar2 = all.vars(formu)[2], timevar = all.vars(formu)[3], covariate = covariate, REadjust = REadjust, model = model, link1 = link1, link2 = link2, objtrans1 = objtrans1, objtrans2 = objtrans2, gamma = gamma, nproc = nproc)
+      opt <- marqLevAlg::marqLevAlg(b=param, fn=bilvsblNC, data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}), nq=nbnodes, adapt = adapt, grp=ngroupvar, weights=weights,  nodes=nodes, newnodes = newnodes, newweights = newweights, scorevar1 = all.vars(formu)[1], scorevar2 = all.vars(formu)[2], timevar = all.vars(formu)[3], covariate = covariate, REadjust = REadjust, model = model, link1 = link1, link2 = link2, objtrans1 = objtrans1, objtrans2 = objtrans2, gamma = gamma, nproc = nproc)
     }
     
   }
@@ -799,7 +811,7 @@ bircpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma 
       opt <- marqLevAlg::marqLevAlg(b=param, fn=bilvsblNC, data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}), nq=nbnodes, adapt = adapt, grp=ngroupvar, weights=weights,  nodes=nodes, newnodes = newnodes, newweights = newweights, scorevar1 = all.vars(formu)[1], scorevar2 = all.vars(formu)[2], timevar = all.vars(formu)[3], covariate = covariate, REadjust = REadjust, model = model, link1 = link1, link2 = link2, objtrans1 = objtrans1, objtrans2 = objtrans2, gamma = gamma)
     }
     else {
-      opt <- marqLevAlgParallel::marqLevAlg(b=param, fn=bilvsblNC, data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}), nq=nbnodes, adapt = adapt, grp=ngroupvar, weights=weights,  nodes=nodes, newnodes = newnodes, newweights = newweights, scorevar1 = all.vars(formu)[1], scorevar2 = all.vars(formu)[2], timevar = all.vars(formu)[3], covariate = covariate, REadjust = REadjust, model = model, link1 = link1, link2 = link2, objtrans1 = objtrans1, objtrans2 = objtrans2, gamma = gamma, nproc = nproc)
+      opt <- marqLevAlg::marqLevAlg(b=param, fn=bilvsblNC, data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}), nq=nbnodes, adapt = adapt, grp=ngroupvar, weights=weights,  nodes=nodes, newnodes = newnodes, newweights = newweights, scorevar1 = all.vars(formu)[1], scorevar2 = all.vars(formu)[2], timevar = all.vars(formu)[3], covariate = covariate, REadjust = REadjust, model = model, link1 = link1, link2 = link2, objtrans1 = objtrans1, objtrans2 = objtrans2, gamma = gamma, nproc = nproc)
     }
     
     if (twostep == TRUE){
@@ -838,7 +850,7 @@ bircpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma 
         
       }
       else {
-        opt <- marqLevAlgParallel::marqLevAlg(b=param, fn=bilvsblNC, data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}), nq=nbnodes, adapt = adapt, grp=ngroupvar, weights=weights,  nodes=nodes, newnodes = newnodes, newweights = newweights, scorevar1 = all.vars(formu)[1], scorevar2 = all.vars(formu)[2], timevar = all.vars(formu)[3], covariate = covariate, REadjust = REadjust, model = model, link1 = link1, link2 = link2, objtrans1 = objtrans1, objtrans2 = objtrans2, gamma = gamma, nproc = nproc)
+        opt <- marqLevAlg::marqLevAlg(b=param, fn=bilvsblNC, data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}), nq=nbnodes, adapt = adapt, grp=ngroupvar, weights=weights,  nodes=nodes, newnodes = newnodes, newweights = newweights, scorevar1 = all.vars(formu)[1], scorevar2 = all.vars(formu)[2], timevar = all.vars(formu)[3], covariate = covariate, REadjust = REadjust, model = model, link1 = link1, link2 = link2, objtrans1 = objtrans1, objtrans2 = objtrans2, gamma = gamma, nproc = nproc)
       }
     }
   }
