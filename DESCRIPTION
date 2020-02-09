@@ -8,6 +8,6 @@ Maintainer: Who to complain to <yourfault@somewhere.net>
 Description: More about what it does (maybe more than one line)
 License: What license is it under?
 LazyData: true
-Imports: Rcpp (>= 0.12.11), marqLevAlg, splines2, nlme, mvtnorm, ggplot2
-LinkingTo: Rcpp, RcppArmadillo, marqLevAlg
-RoxygenNote: 6.1.1
+Imports: marqLevAlg, splines2, nlme, mvtnorm, ggplot2
+LinkingTo: Rcpp, RcppArmadillo
+RoxygenNote: 7.0.2
