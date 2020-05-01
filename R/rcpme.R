@@ -434,7 +434,7 @@ rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 
 
 
   if(is.null(statut)){
-    opt <- marqLevAlg(b=param,fn=lvsblNCgen,data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}),nq=nbnodes,grp=ngroupvar,weights=weights, nodes=nodes, scorevar = all.vars(formu)[1], timevar = all.vars(formu)[2], covariate = covariate, REadjust = REadjust, model = model, link = link, objtrans = objtrans, gamma = gamma)
+    opt <- marqLevAlg(b=param,fn=lvsblNCgenR,data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}),nq=nbnodes,grp=ngroupvar,weights=weights, nodes=nodes, scorevar = all.vars(formu)[1], timevar = all.vars(formu)[2], covariate = covariate, REadjust = REadjust, model = model, link = link, objtrans = objtrans, gamma = gamma)
   }
   
   if(!is.null(statut)){
@@ -516,6 +516,13 @@ rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 
   }
   
   return(list("call" = as.list(match.call()), "Loglik" = opt$fn.value, "formula" = formu, "fixed" = round(tab,3), "sdres"=seps, "VarEA" = VarEA, optpar= opt$b, "covariate" = covariate, "REadjust" = REadjust, "invhessian" = invhessian, "conv" = opt$istop, "init" = param, "model" = model, "gamma" = gamma, "link" = link))
+}
+
+lvsblNCgenR <- function(param,data,nq,grp,weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, gamma){
+  
+  out <- lvsblNCgen(param,data,nq,grp,weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, gamma)
+  
+  return(sum(log(out)))  
 }
 
 

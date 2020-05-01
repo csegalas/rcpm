@@ -263,7 +263,7 @@ arma::mat transfY(arma::colvec Y, String link, arma::colvec param, List objtrans
 
 // [[Rcpp::depends("RcppArmadillo")]]
 // [[Rcpp::export]]
-double lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, NumericVector weights, NumericVector nodes, String scorevar, String timevar, String covariate, String REadjust, String model, String link, List objtrans, double gamma){
+arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, NumericVector weights, NumericVector nodes, String scorevar, String timevar, String covariate, String REadjust, String model, String link, List objtrans, double gamma){
   
   //// extraction des parametres selon les cas (link, cov/REadjust, model)
   // CP trajectory parameters
@@ -295,7 +295,7 @@ double lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, Num
   if (link == "splines"){
     rk3 = rk2 + 5;
     IntegerVector idx = IntegerVector::create(rk2+1, rk2+2, rk2+3, rk2+4, rk2+5);
-    paramtrans = pow(as<arma::rowvec>(param[idx]),2);
+    paramtrans = pow(as<arma::colvec>(param[idx]),2);
   }
   
   // ispline model parameters
@@ -306,7 +306,7 @@ double lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, Num
   }
  
   int N = max(grp);
-  double out = 0;
+  arma::colvec out = arma::ones<arma::colvec>(N);
   for (int i = 0; i<N; i++){
     
     DataFrame datai = as<DataFrame>(data[i]);
@@ -345,7 +345,8 @@ double lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, Num
           double f = dmvnrmarma1d(trans(tY.col(0)), trans(muk), Vk);
           res = res + (f * weights(k));
         }
-        out = out + log(res) + sum(log(tY.col(1)));
+        //out = out + log(res) + sum(log(tY.col(1)));
+        out(i) = res * prod(tY.col(1));
       }
 
       if (covariate != "NULL"){
@@ -379,7 +380,8 @@ double lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, Num
           double f = dmvnrmarma1d(trans(tY.col(0)), trans(muk), Vk);
           res = res + (f * weights(k));
         }
-        out = out + log(res) + sum(log(tY.col(1)));
+        //out = out + log(res) + sum(log(tY.col(1)));
+        out(i) = res * prod(tY.col(1));
       }
     }
   }
@@ -389,8 +391,9 @@ double lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, Num
 
 // [[Rcpp::depends("RcppArmadillo")]]
 // [[Rcpp::export]]
-double lvsbllin(NumericVector param, List data, int nq, NumericVector grp, NumericVector weights, NumericVector nodes, String scorevar, String timevar, String link, List objtrans){
-  
+double lvsbllin(NumericVector param, List data, NumericVector grp, String scorevar, String timevar, String link, List objtrans){
+  //double lvsbllin(NumericVector param, List data, int nq, NumericVector grp, NumericVector weights, NumericVector nodes, String scorevar, String timevar, String link, List objtrans){
+    
   //// extraction des parametres selon les cas (link) et (covariate & REadjust)
   // CP trajectory parameters
   double Beta0=param(0); double Beta1=param(1);
@@ -436,13 +439,15 @@ double lvsbllin(NumericVector param, List data, int nq, NumericVector grp, Numer
       arma::mat Zk = arma::ones<arma::mat>(lgt,2); Zk.col(1) = timeNoNA;
       arma::colvec muk = arma::zeros<arma::colvec>(lgt);
       arma::mat Vk = arma::zeros<arma::mat>(lgt,lgt);
-      for (int k = 0; k < nq; ++k){
+      
+      //for (int k = 0; k < nq; ++k){
         muk = Zk * Betas;
         Vk = (Zk * B) * trans(Zk) + pow(sigma,2) * arma::eye<arma::mat>(lgt,lgt);
         double f = dmvnrmarma1d(trans(tY.col(0)), trans(muk), Vk);
-        res = res + (f * weights(k));
-      }
-      out = out + log(res) + sum(log(tY.col(1)));
+      //  res = res + (f * weights(k));
+      //}
+      out = out + log(f) + sum(log(tY.col(1)));
+      //out = out + log(res) + sum(log(tY.col(1)));
     }
   }
   return out;
