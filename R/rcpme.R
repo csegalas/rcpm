@@ -434,7 +434,7 @@ rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 
 
 
   if(is.null(statut)){
-    opt <- marqLevAlg(b=param,fn=lvsblNCgenR,data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}),nq=nbnodes,grp=ngroupvar,weights=weights, nodes=nodes, scorevar = all.vars(formu)[1], timevar = all.vars(formu)[2], covariate = covariate, REadjust = REadjust, model = model, link = link, objtrans = objtrans, gamma = gamma)
+    opt <- marqLevAlg(b=param,fn=lvsblNCgenR,data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}),nq=nbnodes,grp=ngroupvar,weights=weights, nodes=nodes, scorevar = all.vars(formu)[1], timevar = all.vars(formu)[2], covariate = covariate, REadjust = REadjust, model = model, link = link, objtrans = objtrans, gamma = gamma, loglik = TRUE)
   }
   
   if(!is.null(statut)){
@@ -518,11 +518,17 @@ rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 
   return(list("call" = as.list(match.call()), "Loglik" = opt$fn.value, "formula" = formu, "fixed" = round(tab,3), "sdres"=seps, "VarEA" = VarEA, optpar= opt$b, "covariate" = covariate, "REadjust" = REadjust, "invhessian" = invhessian, "conv" = opt$istop, "init" = param, "model" = model, "gamma" = gamma, "link" = link))
 }
 
-lvsblNCgenR <- function(param,data,nq,grp,weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, gamma){
+lvsblNCgenR <- function(param,data,nq,grp,weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, gamma, loglik){
   
-  out <- lvsblNCgen(param,data,nq,grp,weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, gamma)
+  temp <- lvsblNCgen(param,data,nq,grp,weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, gamma, loglik)
   
-  return(sum(log(out)))  
+  if (loglik == TRUE){
+    out = sum(temp)
+  }
+  if (loglik == FALSE){
+    out = sum(log(temp))
+  }
+  return(out)  
 }
 
 
@@ -534,11 +540,11 @@ lvsblclass <- function(param, data1, data2, nq, grp, grp2, weights, nodes, score
   if (link == "linear"){
     param2 <- param[c(1,2, rk1, rk1+1, rk1+2, rk1+4)]
   }
-  if (link == "isplines"){ # a finir celui ci...
-    param2 <- param[c(1,2,rk1,rk1+1,rk1+2,rk1+3)]
-  }
+  # if (link == "isplines"){ # a finir celui ci...
+  #   param2 <- param[c(1,2,rk1,rk1+1,rk1+2,rk1+3)]
+  # }
   
-  loglik1 <- lvsblNCgen(param, data2, nq, grp2, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans2, gamma)
+  loglik1 <- sum(lvsblNCgen(param, data2, nq, grp2, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans2, gamma, loglik = TRUE))
   
   #probi = 0
   #if (latent = TRUE){
@@ -546,7 +552,8 @@ lvsblclass <- function(param, data1, data2, nq, grp, grp2, weights, nodes, score
   #}
   
   # loglik2 <- lvsbllin(param2, data1, nq, grp, weights, nodes, scorevar, timevar, link, objtrans)
-  loglik2 <- lvsbllin(param2, data1, grp, scorevar, timevar, link, objtrans)
+  loglik2 <- sum(lvsbllin(param2, data1, grp, scorevar, timevar, link, objtrans, loglik = TRUE))
+  
   out <- loglik1 + loglik2
   # 
   # if (latent = TRUE){

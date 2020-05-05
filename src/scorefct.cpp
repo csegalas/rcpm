@@ -263,7 +263,7 @@ arma::mat transfY(arma::colvec Y, String link, arma::colvec param, List objtrans
 
 // [[Rcpp::depends("RcppArmadillo")]]
 // [[Rcpp::export]]
-arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, NumericVector weights, NumericVector nodes, String scorevar, String timevar, String covariate, String REadjust, String model, String link, List objtrans, double gamma){
+arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, NumericVector weights, NumericVector nodes, String scorevar, String timevar, String covariate, String REadjust, String model, String link, List objtrans, double gamma, bool loglik){
   
   //// extraction des parametres selon les cas (link, cov/REadjust, model)
   // CP trajectory parameters
@@ -306,7 +306,10 @@ arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector gr
   }
  
   int N = max(grp);
-  arma::colvec out = arma::ones<arma::colvec>(N);
+  arma::colvec out = arma::zeros<arma::colvec>(N);
+  if (loglik == FALSE){
+    arma::colvec out = arma::ones<arma::colvec>(N);
+  }
   for (int i = 0; i<N; i++){
     
     DataFrame datai = as<DataFrame>(data[i]);
@@ -346,7 +349,13 @@ arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector gr
           res = res + (f * weights(k));
         }
         //out = out + log(res) + sum(log(tY.col(1)));
-        out(i) = res * prod(tY.col(1));
+        if (loglik == TRUE){
+          out(i) = log(res) + sum(log(tY.col(1)));
+        }
+        if (loglik == FALSE){
+          out(i) = res * prod(tY.col(1));
+        }
+
       }
 
       if (covariate != "NULL"){
@@ -381,7 +390,12 @@ arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector gr
           res = res + (f * weights(k));
         }
         //out = out + log(res) + sum(log(tY.col(1)));
-        out(i) = res * prod(tY.col(1));
+        if (loglik == TRUE){
+          out(i) = log(res) + sum(log(tY.col(1)));
+        }
+        if (loglik == FALSE){
+          out(i) = res * prod(tY.col(1));
+        }
       }
     }
   }
@@ -391,7 +405,7 @@ arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector gr
 
 // [[Rcpp::depends("RcppArmadillo")]]
 // [[Rcpp::export]]
-double lvsbllin(NumericVector param, List data, NumericVector grp, String scorevar, String timevar, String link, List objtrans){
+arma::colvec lvsbllin(NumericVector param, List data, NumericVector grp, String scorevar, String timevar, String link, List objtrans, bool loglik){
   //double lvsbllin(NumericVector param, List data, int nq, NumericVector grp, NumericVector weights, NumericVector nodes, String scorevar, String timevar, String link, List objtrans){
     
   //// extraction des parametres selon les cas (link) et (covariate & REadjust)
@@ -417,7 +431,10 @@ double lvsbllin(NumericVector param, List data, NumericVector grp, String scorev
   }
   
   int N = max(grp);
-  double out = 0;
+  arma::colvec out = arma::zeros<arma::colvec>(N);
+  if (loglik == FALSE){
+    arma::colvec out = arma::ones<arma::colvec>(N);
+  }
   for (int i = 0; i<N; i++){
     
     DataFrame datai = as<DataFrame>(data[i]);
@@ -426,7 +443,7 @@ double lvsbllin(NumericVector param, List data, NumericVector grp, String scorev
     arma::colvec scoreNoNA = as<arma::colvec>(score[indNoNA]);
     
     int lgt = scoreNoNA.n_elem;
-    double res = 0;
+    double f = 0;
     
     if (lgt > 0){
       
@@ -440,14 +457,16 @@ double lvsbllin(NumericVector param, List data, NumericVector grp, String scorev
       arma::colvec muk = arma::zeros<arma::colvec>(lgt);
       arma::mat Vk = arma::zeros<arma::mat>(lgt,lgt);
       
-      //for (int k = 0; k < nq; ++k){
-        muk = Zk * Betas;
-        Vk = (Zk * B) * trans(Zk) + pow(sigma,2) * arma::eye<arma::mat>(lgt,lgt);
-        double f = dmvnrmarma1d(trans(tY.col(0)), trans(muk), Vk);
-      //  res = res + (f * weights(k));
-      //}
-      out = out + log(f) + sum(log(tY.col(1)));
-      //out = out + log(res) + sum(log(tY.col(1)));
+      muk = Zk * Betas;
+      Vk = (Zk * B) * trans(Zk) + pow(sigma,2) * arma::eye<arma::mat>(lgt,lgt);
+      f = dmvnrmarma1d(trans(tY.col(0)), trans(muk), Vk);
+      
+      if (loglik == TRUE){
+        out(i) = log(f) + sum(log(tY.col(1)));
+      }
+      if (loglik == FALSE){
+        out(i) = f * prod(tY.col(1));
+      }
     }
   }
   return out;
