@@ -300,7 +300,9 @@ arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector gr
   
   // ispline model parameters
   arma::rowvec paramspl = arma::ones<arma::rowvec>(3);
+  int rk4 = rk3;
   if (model == "isplines"){
+    rk4 = rk3 + 3;
     IntegerVector idx = IntegerVector::create(rk3+1, rk3+2, rk3+3);
     paramspl = pow(as<arma::rowvec>(param[idx]),2);
   }
@@ -308,7 +310,7 @@ arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector gr
   int N = max(grp);
   arma::colvec out = arma::zeros<arma::colvec>(N);
   if (loglik == FALSE){
-    arma::colvec out = arma::ones<arma::colvec>(N);
+    out = arma::ones<arma::colvec>(N);
   }
   for (int i = 0; i<N; i++){
     
@@ -318,9 +320,13 @@ arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector gr
     arma::colvec scoreNoNA = as<arma::colvec>(score[indNoNA]);
     
     int lgt = scoreNoNA.n_elem;
-    double res = 0;
 
     if (lgt > 0){
+      
+      double res = 0;
+      if (loglik == FALSE){
+        res = 1;
+      }
 
       NumericVector time = datai[timevar];
       arma::colvec timeNoNA = as<arma::colvec>(time[indNoNA]);
@@ -433,7 +439,7 @@ arma::colvec lvsbllin(NumericVector param, List data, NumericVector grp, String 
   int N = max(grp);
   arma::colvec out = arma::zeros<arma::colvec>(N);
   if (loglik == FALSE){
-    arma::colvec out = arma::ones<arma::colvec>(N);
+    out = arma::ones<arma::colvec>(N);
   }
   for (int i = 0; i<N; i++){
     
@@ -443,9 +449,13 @@ arma::colvec lvsbllin(NumericVector param, List data, NumericVector grp, String 
     arma::colvec scoreNoNA = as<arma::colvec>(score[indNoNA]);
     
     int lgt = scoreNoNA.n_elem;
-    double f = 0;
     
     if (lgt > 0){
+      
+      double f = 0;
+      if (loglik == FALSE){
+        f = 1;
+      }
       
       NumericVector time = datai[timevar];
       arma::colvec timeNoNA = as<arma::colvec>(time[indNoNA]);

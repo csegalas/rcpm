@@ -339,7 +339,7 @@ transY <- function(rcpmeObj, longdata){ # calcule les scores transformes a parti
 #' @export
 #'
 #' @examples
-rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 0.1, nbnodes = 10, param = NULL, model = "test", link = "linear", statut = NULL){
+rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 0.1, nbnodes = 10, param = NULL, model = "test", link = "linear", statut = NULL, latent = FALSE, classprob = NULL){
   
   if (covariate == "NULL" & REadjust != "no") stop("Need a covariate to adjust random effects variance structure.")
   if (REadjust == "prop") stop("It has not been implemented yet. Sorry for the inconvenience...")
@@ -348,6 +348,7 @@ rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 
   rk0 = 3 - (model == "isplines")
   rk1 = 4 + (link == "linear") - (model == "isplines")
   rk2 = rk1 + 7 + (covariate !="NULL")*(4*(REadjust=="no") + 5*(REadjust=="prop") + 11*(REadjust=="yes"))
+  lgtclassprob = length(all.vars(classprob))
   
   # =============================================
   
@@ -430,6 +431,10 @@ rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 
     if (model == "isplines"){
       param <- c(param[-3], rep(2,3))
     }
+    
+    if (!is.null(classprob)){
+      param <- c(param, rep(0, lgtclassprob+1))
+    }
   }
 
 
@@ -439,7 +444,7 @@ rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 
   
   if(!is.null(statut)){
     # optimisation du melange
-    opt <- marqLevAlg(b=param,fn=lvsblclass,data1=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}),data2=by(longdata2,longdata2[,"ngroupvar2"],function(x){return(x)}),nq=nbnodes,grp=ngroupvar,grp2=ngroupvar2,weights=weights, nodes=nodes, scorevar = all.vars(formu)[1], timevar = all.vars(formu)[2], covariate = covariate, REadjust = REadjust, model = model, link = link, objtrans = objtrans, objtrans2 = objtrans2, gamma = gamma)
+    opt <- marqLevAlg(b=param,fn=lvsblclass,data1=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}),data2=by(longdata2,longdata2[,"ngroupvar2"],function(x){return(x)}),nq=nbnodes,grp=ngroupvar,grp2=ngroupvar2,weights=weights, nodes=nodes, scorevar = all.vars(formu)[1], timevar = all.vars(formu)[2], covariate = covariate, REadjust = REadjust, model = model, link = link, objtrans = objtrans, objtrans2 = objtrans2, gamma = gamma, latent = latent, classprob = classprob)
   }
   
   # OUT : fixed parameters ===========================================================================================
@@ -532,35 +537,44 @@ lvsblNCgenR <- function(param,data,nq,grp,weights, nodes, scorevar, timevar, cov
 }
 
 
-lvsblclass <- function(param, data1, data2, nq, grp, grp2, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, objtrans2, gamma, latent = FALSE){
+lvsblclass <- function(param, data1, data2, nq, grp, grp2, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, objtrans2, gamma, latent, classprob = classprob){
 
+  rk0 = 3 - (model == "isplines")
   rk1 = 4 + (link == "linear") - (model == "isplines")
+  rk4 = rk1 + 7 + (covariate !="NULL")*(4*(REadjust=="no") + 5*(REadjust=="prop") + 11*(REadjust=="yes")) + 5*(link=="isplines") + 3*(model=="isplines")
 
   # on vire les parametres inutiles ds l'esti du modele lineaire
   if (link == "linear"){
     param2 <- param[c(1,2, rk1, rk1+1, rk1+2, rk1+4)]
   }
-  # if (link == "isplines"){ # a finir celui ci...
-  #   param2 <- param[c(1,2,rk1,rk1+1,rk1+2,rk1+3)]
-  # }
+  
+  if (link == "isplines"){ # a finir celui ci...
+     param2 <- param[c(1,2,rk1,rk1+1,rk1+2,rk1+3)]
+  }
+  
   
   loglik1 <- sum(lvsblNCgen(param, data2, nq, grp2, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans2, gamma, loglik = TRUE))
   
-  #probi = 0
-  #if (latent = TRUE){
-  #  probi = ()
-  #}
+  if (latent == FALSE){
+    loglik2 <- sum(lvsbllin(param2, data1, grp, scorevar, timevar, link, objtrans, loglik = TRUE))
+    out = loglik1 + loglik2
+  }
   
-  # loglik2 <- lvsbllin(param2, data1, nq, grp, weights, nodes, scorevar, timevar, link, objtrans)
-  loglik2 <- sum(lvsbllin(param2, data1, grp, scorevar, timevar, link, objtrans, loglik = TRUE))
-  
-  out <- loglik1 + loglik2
-  # 
-  # if (latent = TRUE){
-  #   probi <- 
-  #   loglik3 <- lvsblNCgen(param, data1, nq, grp, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, gamma)
-  #   out = loglik1 + ()
-  # }
+  if (latent == TRUE){
+    lgtclassprob = length(all.vars(classprob))
+    if (lgtclassprob > 0){
+      # extract class membership parameters
+      classmbpar <- as.matrix(param[seq(rk4+2,rk4+lgtclassprob+1)], ncol = lgtclassprob)
+      # extract class membership dep var
+      classmbvar <- matrix(unlist(lapply(data1, function(x) return(x[1,all.vars(classprob)]))), ncol = lgtclassprob, byrow = TRUE)
+      prob <- exp(param[rk4+1] + classmbvar %*% classmbpar)/(1+exp(param[rk4+1] + classmbvar %*% classmbpar))
+    } else {
+      prob <- exp(param[rk4+1])/(1+exp(param[rk4+1]))
+    }
+    loglik3 <- lvsblNCgen(param, data1, nq, grp, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, gamma, loglik = FALSE)
+    loglik4 <- lvsbllin(param2, data1, grp, scorevar, timevar, link, objtrans, loglik = FALSE)
+    out = loglik1 + sum(log((1-prob)*loglik4 + prob*loglik3))
+  }
   
   return(out)
 }
