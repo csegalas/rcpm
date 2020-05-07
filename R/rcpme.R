@@ -537,7 +537,7 @@ lvsblNCgenR <- function(param,data,nq,grp,weights, nodes, scorevar, timevar, cov
 }
 
 
-lvsblclass <- function(param, data1, data2, nq, grp, grp2, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, objtrans2, gamma, latent, classprob = classprob){
+lvsblclass <- function(param, data1, data2, nq, grp, grp2, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, objtrans2, gamma, latent, classprob){
 
   rk0 = 3 - (model == "isplines")
   rk1 = 4 + (link == "linear") - (model == "isplines")
