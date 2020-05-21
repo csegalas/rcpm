@@ -200,7 +200,7 @@ geneData <- function(n = 100, hyp = "null", params, pNA = 0, DO = 0, vis = c(0, 
   return(donnees)
 }
 
-geneDataSpl  <- function(n = 100, params, pNA = 0, DO = 0, vis = c(0, 3, 6, 9, 12, 15, 18, 21), gamma = 0.1, pcas){
+geneDataSpl  <- function(n = 100, params, pNA = 0, DO = 0, vis = c(0, 3, 6, 9, 12, 15, 18, 21), gamma = 0.1, pcas, pi = 0){
   
   nbvis = length(vis)
   donnees <- matrix(NA, nrow = n * nbvis, ncol = 4)
@@ -229,13 +229,21 @@ geneDataSpl  <- function(n = 100, params, pNA = 0, DO = 0, vis = c(0, 3, 6, 9, 1
       statut = rbinom(1, 1, pcas)
       donnees[((nbvis*(i-1))+1):(nbvis*i),4] <- statut 
       
+      if (statut == 1){
+        delta = 1
+      } else if (statut == 0 & pi == 0){
+        delta = 0
+      } else if (statut == 0 & pi > 0){
+        delta = rbinom(1, 1, pi)
+      }
+      
       # generation des effets aleatoires pour l'individu i
       bis[i,] <- rmvnorm(1, mean = c(0,0,0,0), sigma = B)
       donnees[((nbvis*(i-1))+1):(nbvis*i),1] <- i
       donnees[((nbvis*(i-1))+1):(nbvis*i),2] <- vis
       for (j in seq(nbvis)){
         eps = rnorm(1,0,sigma)
-        donnees[(nbvis*(i-1))+j,3] = Beta0 + bis[i,1] + (Beta1 + bis[i,2])*vis[j] + (statut==1)*(Beta2 + bis[i,3])*(sum(4*ispline(vis[j] - (mutau + bis[i,4]),0,20,5))) + eps
+        donnees[(nbvis*(i-1))+j,3] = Beta0 + bis[i,1] + (Beta1 + bis[i,2])*vis[j] + (delta)*(Beta2 + bis[i,3])*(sum(c(4,4,4)*ispline2(vis[j] - (mutau + bis[i,4]),0,20,5,3,FALSE))) + eps
       }
     }
   }
@@ -545,18 +553,18 @@ lvsblclass <- function(param, data1, data2, nq, grp, grp2, weights, nodes, score
 
   # on vire les parametres inutiles ds l'esti du modele lineaire
   if (link == "linear"){
-    param2 <- param[c(1,2, rk1, rk1+1, rk1+2, rk1+4)]
+    paramlin <- param[c(1,2, rk1, rk1+1, rk1+2, rk1+4)]
   }
   
   if (link == "isplines"){ # a finir celui ci...
-     param2 <- param[c(1,2,rk1,rk1+1,rk1+2,rk1+3)]
+    paramlin <- param[c(1,2,rk1,rk1+1,rk1+2,rk1+3)]
   }
   
   
   loglik1 <- sum(lvsblNCgen(param, data2, nq, grp2, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans2, gamma, loglik = TRUE))
   
   if (latent == FALSE){
-    loglik2 <- sum(lvsbllin(param2, data1, grp, scorevar, timevar, link, objtrans, loglik = TRUE))
+    loglik2 <- sum(lvsbllin(paramlin, data1, grp, scorevar, timevar, link, objtrans, loglik = TRUE))
     out = loglik1 + loglik2
   }
   
@@ -571,9 +579,9 @@ lvsblclass <- function(param, data1, data2, nq, grp, grp2, weights, nodes, score
     } else {
       prob <- exp(param[rk4+1])/(1+exp(param[rk4+1]))
     }
-    loglik3 <- lvsblNCgen(param, data1, nq, grp, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, gamma, loglik = FALSE)
-    loglik4 <- lvsbllin(param2, data1, grp, scorevar, timevar, link, objtrans, loglik = FALSE)
-    out = loglik1 + sum(log((1-prob)*loglik4 + prob*loglik3))
+    lik3 <- lvsblNCgen(param, data1, nq, grp, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, gamma, loglik = FALSE)
+    lik4 <- lvsbllin(paramlin, data1, grp, scorevar, timevar, link, objtrans, loglik = FALSE)
+    out = loglik1 + sum(log((1-prob)*lik4 + prob*lik3))
   }
   
   return(out)
