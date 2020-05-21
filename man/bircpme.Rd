@@ -4,10 +4,21 @@
 \alias{bircpme}
 \title{Bivariate Random Change Point Mixed Model}
 \usage{
-bircpme(longdata, formu, covariate = "NULL", REadjust = "no",
-  gamma = 0.1, nbnodes = 10, adapt = FALSE, param = NULL,
-  nproc = 1, model = "test", link1 = "linear", link2 = "linear",
-  twostep = FALSE)
+bircpme(
+  longdata,
+  formu,
+  covariate = "NULL",
+  REadjust = "no",
+  gamma = 0.1,
+  nbnodes = 10,
+  adapt = FALSE,
+  param = NULL,
+  nproc = 1,
+  model = "test",
+  link1 = "linear",
+  link2 = "linear",
+  twostep = FALSE
+)
 }
 \arguments{
 \item{longdata}{A dataframe containing the variables used in the formula  \code{formu}}
@@ -22,9 +33,19 @@ bircpme(longdata, formu, covariate = "NULL", REadjust = "no",
 
 \item{nbnodes}{A numeric parameter indicating how many nodes are to be used for the gaussian quadrature for numerical integration. Default to 10.}
 
-\item{adapt}{A boolean indicating whether adaptive gaussian quadrature should be used for numerical integration. Default to FALSE, the adaptive quadrature is still being implemented and TRUE will return an error.}
+\item{adapt}{A boolean indicating whether adaptive gaussian quadrature should be used for numerical integration. Default to FALSE.}
 
-\item{param}{}
+\item{param}{An optional vector parameter that contains initial parameter for the optimization of the log-likelihood. Default to NULL.}
+
+\item{nproc}{An optional integer specifying the number of processors for parallelisation of the optimization algorithm. Default to 1.}
+
+\item{model}{An optional string indicating which formulation of the random changepoint exists. The first is `test` which is used by the `testRCPMM` function, the second is `bw` for the Bacon-Watts formulation of the model, the third is `isplines` for the I-spline model. When used for estimation purpose, you should either `bw` or `isplines` which has better interpretability properties. Default to `bw`}
+
+\item{link1}{An optional string indicating which link function is to be used for the first marker. This link function is used to deal with non-gaussian data. With `link=splines` the model estimates an appropriate I-spline link function `g` so that `g(scorevar)` is a gaussian variable. If data is already gaussian, you can chose `link=linear` so that no link function will be estimated. Default to `linear`.}
+
+\item{link2}{Same as \code{link1} but for the second marker. Default to `linear`.}
+
+\item{twostep}{An optional boolean to specify if a two-step pseudo adaptive Gaussian quadrature should be used. Currently not working. Default to `FALSE`.}
 }
 \value{
 The output contains several objects : \code{loglik} is the value of the log-likelihood at the optimum; \code{fixed} contains all fixed parameters estimates, standard errors, CIs, wald test statistic and corresponding pvalue when possible; \code{sdres} the estimated residual error; \code{VarEA} a matrix containing the estimated random effects covariance matrix of the eight random effects: four for each marker with a general correlation structure between them; \code{optpar} the optimal parameters maximizing the log-likelihood; \code{covariate} the covariate declared in the function call; \code{REadjust} the string indicating how random effects structure is handled as declared in the function call, \code{invhessian} the covariance matrix containing all the standard errors and correlations of the parameter estimates;

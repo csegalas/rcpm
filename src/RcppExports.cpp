@@ -33,6 +33,38 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// mspline2
+arma::mat mspline2(arma::colvec x, double tmin, double tmax, arma::colvec tint, int k, bool intercept);
+RcppExport SEXP _rcpm_mspline2(SEXP xSEXP, SEXP tminSEXP, SEXP tmaxSEXP, SEXP tintSEXP, SEXP kSEXP, SEXP interceptSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::colvec >::type x(xSEXP);
+    Rcpp::traits::input_parameter< double >::type tmin(tminSEXP);
+    Rcpp::traits::input_parameter< double >::type tmax(tmaxSEXP);
+    Rcpp::traits::input_parameter< arma::colvec >::type tint(tintSEXP);
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    Rcpp::traits::input_parameter< bool >::type intercept(interceptSEXP);
+    rcpp_result_gen = Rcpp::wrap(mspline2(x, tmin, tmax, tint, k, intercept));
+    return rcpp_result_gen;
+END_RCPP
+}
+// ispline2
+arma::mat ispline2(arma::colvec x, double tmin, double tmax, arma::colvec tint, int k, bool intercept);
+RcppExport SEXP _rcpm_ispline2(SEXP xSEXP, SEXP tminSEXP, SEXP tmaxSEXP, SEXP tintSEXP, SEXP kSEXP, SEXP interceptSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::colvec >::type x(xSEXP);
+    Rcpp::traits::input_parameter< double >::type tmin(tminSEXP);
+    Rcpp::traits::input_parameter< double >::type tmax(tmaxSEXP);
+    Rcpp::traits::input_parameter< arma::colvec >::type tint(tintSEXP);
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    Rcpp::traits::input_parameter< bool >::type intercept(interceptSEXP);
+    rcpp_result_gen = Rcpp::wrap(ispline2(x, tmin, tmax, tint, k, intercept));
+    return rcpp_result_gen;
+END_RCPP
+}
 // mspline
 arma::colvec mspline(double x, double tmin, double tmax, double tint);
 RcppExport SEXP _rcpm_mspline(SEXP xSEXP, SEXP tminSEXP, SEXP tmaxSEXP, SEXP tintSEXP) {
@@ -115,8 +147,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // lvsblNCgen
-double lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, NumericVector weights, NumericVector nodes, String scorevar, String timevar, String covariate, String REadjust, String model, String link, List objtrans, double gamma);
-RcppExport SEXP _rcpm_lvsblNCgen(SEXP paramSEXP, SEXP dataSEXP, SEXP nqSEXP, SEXP grpSEXP, SEXP weightsSEXP, SEXP nodesSEXP, SEXP scorevarSEXP, SEXP timevarSEXP, SEXP covariateSEXP, SEXP REadjustSEXP, SEXP modelSEXP, SEXP linkSEXP, SEXP objtransSEXP, SEXP gammaSEXP) {
+arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, NumericVector weights, NumericVector nodes, String scorevar, String timevar, String covariate, String REadjust, String model, String link, List objtrans, double gamma, bool loglik);
+RcppExport SEXP _rcpm_lvsblNCgen(SEXP paramSEXP, SEXP dataSEXP, SEXP nqSEXP, SEXP grpSEXP, SEXP weightsSEXP, SEXP nodesSEXP, SEXP scorevarSEXP, SEXP timevarSEXP, SEXP covariateSEXP, SEXP REadjustSEXP, SEXP modelSEXP, SEXP linkSEXP, SEXP objtransSEXP, SEXP gammaSEXP, SEXP loglikSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -134,27 +166,26 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< String >::type link(linkSEXP);
     Rcpp::traits::input_parameter< List >::type objtrans(objtransSEXP);
     Rcpp::traits::input_parameter< double >::type gamma(gammaSEXP);
-    rcpp_result_gen = Rcpp::wrap(lvsblNCgen(param, data, nq, grp, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, gamma));
+    Rcpp::traits::input_parameter< bool >::type loglik(loglikSEXP);
+    rcpp_result_gen = Rcpp::wrap(lvsblNCgen(param, data, nq, grp, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, gamma, loglik));
     return rcpp_result_gen;
 END_RCPP
 }
 // lvsbllin
-double lvsbllin(NumericVector param, List data, int nq, NumericVector grp, NumericVector weights, NumericVector nodes, String scorevar, String timevar, String link, List objtrans);
-RcppExport SEXP _rcpm_lvsbllin(SEXP paramSEXP, SEXP dataSEXP, SEXP nqSEXP, SEXP grpSEXP, SEXP weightsSEXP, SEXP nodesSEXP, SEXP scorevarSEXP, SEXP timevarSEXP, SEXP linkSEXP, SEXP objtransSEXP) {
+arma::colvec lvsbllin(NumericVector param, List data, NumericVector grp, String scorevar, String timevar, String link, List objtrans, bool loglik);
+RcppExport SEXP _rcpm_lvsbllin(SEXP paramSEXP, SEXP dataSEXP, SEXP grpSEXP, SEXP scorevarSEXP, SEXP timevarSEXP, SEXP linkSEXP, SEXP objtransSEXP, SEXP loglikSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< NumericVector >::type param(paramSEXP);
     Rcpp::traits::input_parameter< List >::type data(dataSEXP);
-    Rcpp::traits::input_parameter< int >::type nq(nqSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type grp(grpSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type weights(weightsSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type nodes(nodesSEXP);
     Rcpp::traits::input_parameter< String >::type scorevar(scorevarSEXP);
     Rcpp::traits::input_parameter< String >::type timevar(timevarSEXP);
     Rcpp::traits::input_parameter< String >::type link(linkSEXP);
     Rcpp::traits::input_parameter< List >::type objtrans(objtransSEXP);
-    rcpp_result_gen = Rcpp::wrap(lvsbllin(param, data, nq, grp, weights, nodes, scorevar, timevar, link, objtrans));
+    Rcpp::traits::input_parameter< bool >::type loglik(loglikSEXP);
+    rcpp_result_gen = Rcpp::wrap(lvsbllin(param, data, grp, scorevar, timevar, link, objtrans, loglik));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -268,13 +299,15 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_rcpm_dn", (DL_FUNC) &_rcpm_dn, 3},
     {"_rcpm_dmvnrmarma", (DL_FUNC) &_rcpm_dmvnrmarma, 4},
+    {"_rcpm_mspline2", (DL_FUNC) &_rcpm_mspline2, 6},
+    {"_rcpm_ispline2", (DL_FUNC) &_rcpm_ispline2, 6},
     {"_rcpm_mspline", (DL_FUNC) &_rcpm_mspline, 4},
     {"_rcpm_ispline", (DL_FUNC) &_rcpm_ispline, 4},
     {"_rcpm_dmvnrmarma1d", (DL_FUNC) &_rcpm_dmvnrmarma1d, 4},
     {"_rcpm_ScoreInd", (DL_FUNC) &_rcpm_ScoreInd, 15},
     {"_rcpm_transfY", (DL_FUNC) &_rcpm_transfY, 4},
-    {"_rcpm_lvsblNCgen", (DL_FUNC) &_rcpm_lvsblNCgen, 14},
-    {"_rcpm_lvsbllin", (DL_FUNC) &_rcpm_lvsbllin, 10},
+    {"_rcpm_lvsblNCgen", (DL_FUNC) &_rcpm_lvsblNCgen, 15},
+    {"_rcpm_lvsbllin", (DL_FUNC) &_rcpm_lvsbllin, 8},
     {"_rcpm_bilvsblNC", (DL_FUNC) &_rcpm_bilvsblNC, 20},
     {"_rcpm_IndRePostDis", (DL_FUNC) &_rcpm_IndRePostDis, 8},
     {"_rcpm_IndRePostDis2", (DL_FUNC) &_rcpm_IndRePostDis2, 8},

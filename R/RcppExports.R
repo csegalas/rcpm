@@ -9,6 +9,14 @@ dmvnrmarma <- function(x, mean, sigma, logd = FALSE) {
     .Call('_rcpm_dmvnrmarma', PACKAGE = 'rcpm', x, mean, sigma, logd)
 }
 
+mspline2 <- function(x, tmin, tmax, tint, k, intercept) {
+    .Call('_rcpm_mspline2', PACKAGE = 'rcpm', x, tmin, tmax, tint, k, intercept)
+}
+
+ispline2 <- function(x, tmin, tmax, tint, k, intercept) {
+    .Call('_rcpm_ispline2', PACKAGE = 'rcpm', x, tmin, tmax, tint, k, intercept)
+}
+
 mspline <- function(x, tmin, tmax, tint) {
     .Call('_rcpm_mspline', PACKAGE = 'rcpm', x, tmin, tmax, tint)
 }
@@ -29,12 +37,12 @@ transfY <- function(Y, link, param, objtransi) {
     .Call('_rcpm_transfY', PACKAGE = 'rcpm', Y, link, param, objtransi)
 }
 
-lvsblNCgen <- function(param, data, nq, grp, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, gamma) {
-    .Call('_rcpm_lvsblNCgen', PACKAGE = 'rcpm', param, data, nq, grp, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, gamma)
+lvsblNCgen <- function(param, data, nq, grp, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, gamma, loglik) {
+    .Call('_rcpm_lvsblNCgen', PACKAGE = 'rcpm', param, data, nq, grp, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, gamma, loglik)
 }
 
-lvsbllin <- function(param, data, nq, grp, weights, nodes, scorevar, timevar, link, objtrans) {
-    .Call('_rcpm_lvsbllin', PACKAGE = 'rcpm', param, data, nq, grp, weights, nodes, scorevar, timevar, link, objtrans)
+lvsbllin <- function(param, data, grp, scorevar, timevar, link, objtrans, loglik) {
+    .Call('_rcpm_lvsbllin', PACKAGE = 'rcpm', param, data, grp, scorevar, timevar, link, objtrans, loglik)
 }
 
 bilvsblNC <- function(param, data, nq, adapt, grp, weights, nodes, newnodes, newweights, scorevar1, scorevar2, timevar, covariate, REadjust, model, link1, link2, objtrans1, objtrans2, gamma) {

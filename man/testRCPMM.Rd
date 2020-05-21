@@ -4,8 +4,14 @@
 \alias{testRCPMM}
 \title{testRCPMM}
 \usage{
-testRCPMM(longdata, formu, covariate = NULL, gamma = 0.1,
-  nbnodes = 5, nbpert = 500)
+testRCPMM(
+  longdata,
+  formu,
+  covariate = NULL,
+  gamma = 0.1,
+  nbnodes = 5,
+  nbpert = 500
+)
 }
 \arguments{
 \item{longdata}{A longitudinal dataset containing all variables used in the formula \code{formu}}
@@ -16,7 +22,7 @@ testRCPMM(longdata, formu, covariate = NULL, gamma = 0.1,
 
 \item{gamma}{A smoothing parameter for the transition on the changepoint date. 0.1 by default.}
 
-\item{nbnodes}{Number of pseudo-adaptive gaussian quadrature nodes used to compute the numeric integrals. 5 by default.}
+\item{nbnodes}{Number of pseudo-adaptive Gaussian quadrature nodes used to compute the numeric integrals. 5 by default.}
 
 \item{nbpert}{Number of perturbations used to compute the empirical p-value. 500 by default.}
 }

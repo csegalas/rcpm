@@ -86,7 +86,7 @@ MATmuInd <- function(data, Beta0, Beta1, sigma, newnodes, nbnodes, nd=3, formu){
     diffY_MATmu <- (rep(1,nbnodes**nd) %*% t(scorevar)) - MATmu
     expNorm <- exp(-0.5*(diffY_MATmu/sigma)**2)
     if (lgt == 1){
-      # prodIndDiff <- <- rep(1,nq**nd) modifié pour avoir type matrix
+      # prodIndDiff <- <- rep(1,nq**nd) modifie pour avoir type matrix
       prodIndDiff <- matrix(rep(1,nbnodes**nd),nrow = nbnodes**nd, ncol = 1)
     } else if (lgt == 2){
       prodIndDiff <- sapply(1:lgt,function(x){return(expNorm[,-x])})
@@ -195,10 +195,10 @@ testRCPMM <- function(longdata, formu, covariate = NULL, gamma = 0.1, nbnodes = 
   newnodes <- mapply(function(a,b){return(list(t(apply(nodes,1,function(x){return(sqrt(2)*b%*%x+a)}))))},estiranef,cholvarbi)
   newweights <- lapply(cholvarbi,function(a){return(weights*det(sqrt(2)*a))*apply(nodes,1,function(x){return(exp(t(x)%*%x))})})
   
-  # calcul des qtés nécessaires au calcul du score
+  # calcul des qtes necessaires au calcul du score
   MATmus <- MATmu(estis,longdata,newnodes,nbnodes,3,ngroupvar,formu)
 
-  # calcul de la stat de test observée sur l'échantillon simulé
+  # calcul de la stat de test observee sur l'echantillon simule
   tau <- c(round(mean(timevar, na.rm=TRUE),1),1)
   pert <- 1
   optobs <- optim(par=tau, fn=Score, estis=estis,estiVarEA=estiVarEA,longdata=longdata,newnodes=newnodes,newweights=newweights,nbnodes=nbnodes,nd=3,groupvar=ngroupvar, MATmus = MATmus, formu = formu, pert=pert, method=c("L-BFGS-B"), control=list(maxit=250, factr = 0.001, pgtol=0.001)) # optim : reltol001
