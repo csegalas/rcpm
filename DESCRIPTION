@@ -10,4 +10,5 @@ License: What license is it under?
 LazyData: true
 Imports: marqLevAlg, splines2, nlme, mvtnorm, ggplot2
 LinkingTo: Rcpp, RcppArmadillo
-RoxygenNote: 7.0.2
+RoxygenNote: 7.2.3
+Encoding: UTF-8
