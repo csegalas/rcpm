@@ -447,7 +447,7 @@ rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 
 
 
   if(is.null(statut)){
-    opt <- marqLevAlg(b=param,fn=lvsblNCgenR,data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}),nq=nbnodes,grp=ngroupvar,weights=weights, nodes=nodes, scorevar = all.vars(formu)[1], timevar = all.vars(formu)[2], covariate = covariate, REadjust = REadjust, model = model, link = link, objtrans = objtrans, gamma = gamma, loglik = TRUE)
+    opt <- marqLevAlg(b=param,fn=lvsblNCgenR,minimize = FALSE,data=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}),nq=nbnodes,grp=ngroupvar,weights=weights, nodes=nodes, scorevar = all.vars(formu)[1], timevar = all.vars(formu)[2], covariate = covariate, REadjust = REadjust, model = model, link = link, objtrans = objtrans, gamma = gamma, loglik = TRUE)
   }
   
   if(!is.null(statut)){
