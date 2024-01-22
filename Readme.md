@@ -36,7 +36,7 @@ the working environment and let us look at the data !
     ## 6  1  15  0.1474333  1
 
 The dataset contains one line per visit. On each line, we can read `id`
-the patient identifier , `ist` its current Isaacs Set Test valuewhich
+the patient identifier , `ist` its current Isaacs Set Test value which
 measures memory impairment, `delay` the current delay to patient
 diagnostic of dementia divided by ten and `el` a binary variable for
 educational level (0 for non primary school certificate patients, 1 for
