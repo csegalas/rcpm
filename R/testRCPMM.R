@@ -46,7 +46,7 @@ testRCPMM <- function(longdata, formu, covariate = NULL, gamma = 0.1, nbnodes = 
 
   # estimating individual random effects
   init <- c(1,1)
-  hatRE <- by(longdata, ngroupvar, estisranef, init, estis, estiVarEA, formu)
+  hatRE <- lapply(split(longdata, ngroupvar), function(x) return(hatRE(x, init, estis, estiVarEA, formu)))
   estiranef <- lapply(hatRE,function(x){return(c(x[[1]],0))})
   varbi <- lapply(hatRE,function(x){return(rbind(cbind(x[[2]],c(0,0)),c(0,0,1/2)))})
   cholvarbi <- lapply(varbi,chol)
