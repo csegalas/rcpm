@@ -46,7 +46,7 @@ testRCPMM <- function(longdata, formu, covariate = NULL, gamma = 0.1, nbnodes = 
 
   # estimating individual random effects
   init <- c(1,1)
-  hatRE <- lapply(split(longdata,ngroupvar), function(x) return(hatRE(x, init, estis, estiVarEA, formu)))
+  hatRE <- lapply(split(longdata, ngroupvar), function(x) return(estisranef(x, init, estis, estiVarEA, formu)))
   estiranef <- lapply(hatRE,function(x){return(c(x[[1]],0))})
   varbi <- lapply(hatRE,function(x){return(rbind(cbind(x[[2]],c(0,0)),c(0,0,1/2)))})
   cholvarbi <- lapply(varbi,chol)
@@ -71,7 +71,7 @@ testRCPMM <- function(longdata, formu, covariate = NULL, gamma = 0.1, nbnodes = 
   res <- rep(NA, nbpert)
   n <- max(ngroupvar, na.rm = TRUE)
   for (i in 1:nbpert){
-    pert <- rnorm(n,0,1)
+    pert <- rnorm(n, 0, 1)
     opt <- optim(par=tau, fn=Score, estis=estis,estiVarEA=estiVarEA,longdata=longdata,newnodes=newnodes,newweights=newweights,nbnodes=nbnodes,nd=3,groupvar=ngroupvar, MATmus = MATmus, formu = formu, pert=pert, method=c("L-BFGS-B"), control=list(maxit=250, factr = 0.001, pgtol=0.001)) # optim : reltol001
     res[i] <- opt$value
   }

@@ -15,6 +15,5 @@ Score <- function(tau,estis,estiVarEA,longdata,newnodes,newweights,nbnodes,nd,gr
   
   B <- rbind(cbind(estiVarEA,c(0,0)),c(0,0,sigmatau**2))
   
-  return(-tst(by(longdata, groupvar, ScoreInd, Beta0, Beta1, sigma, mutau, sigmatau, B, MATmus, nbnodes, nd, newnodes, newweights, all.vars(formu)[1],all.vars(formu)[2],"ngroupvar"), pert)) # rcpp
-  # return(-tst(by(data, grp, ScoreInd, sigma, mutau, sigmatau, B, MATmus, nq, nd, newnodes, newweights)))
+  return(-tst(unlist(lapply(split(longdata, groupvar), function(x) return(ScoreInd(x, Beta0, Beta1, sigma, mutau, sigmatau, B, MATmus, nbnodes, nd, newnodes, newweights, all.vars(formu)[1],all.vars(formu)[2],"ngroupvar")))), pert))
 }
