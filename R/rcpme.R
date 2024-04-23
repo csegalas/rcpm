@@ -120,7 +120,7 @@ rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 
   
   if(!is.null(statut)){
     # optimisation du melange
-    opt <- marqLevAlg(b=param,fn=lvsblclass,data1=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}),data2=by(longdata2,longdata2[,"ngroupvar2"],function(x){return(x)}),nq=nbnodes,grp=ngroupvar,grp2=ngroupvar2,weights=weights, nodes=nodes, scorevar = all.vars(formu)[1], timevar = all.vars(formu)[2], covariate = covariate, REadjust = REadjust, model = model, link = link, objtrans = objtrans, objtrans2 = objtrans2, gamma = gamma, latent = latent, classprob = classprob)
+    opt <- marqLevAlg(b=param,fn=lvsblclass, minimize = FALSE, data1=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}),data2=by(longdata2,longdata2[,"ngroupvar2"],function(x){return(x)}),nq=nbnodes,grp=ngroupvar,grp2=ngroupvar2,weights=weights, nodes=nodes, scorevar = all.vars(formu)[1], timevar = all.vars(formu)[2], covariate = covariate, REadjust = REadjust, model = model, link = link, objtrans = objtrans, objtrans2 = objtrans2, gamma = gamma, latent = latent, classprob = classprob)
   }
   
   # OUT : fixed parameters ===========================================================================================
@@ -196,5 +196,5 @@ rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 
     colnames(vars) <- c("par")
   }
   
-  return(list("call" = as.list(match.call()), "Loglik" = opt$fn.value, "formula" = formu, "fixed" = round(tab,3), "sdres"=seps, "VarEA" = VarEA, optpar= opt$b, "covariate" = covariate, "REadjust" = REadjust, "invhessian" = invhessian, "conv" = opt$istop, "init" = param, "model" = model, "gamma" = gamma, "link" = link))
+  return(list("call" = as.list(match.call()), "Loglik" = opt$fn.value, "formula" = formu, "fixed" = round(tab,3), "sdres"=seps, "VarEA" = VarEA, optpar= opt$b, "covariate" = covariate, "REadjust" = REadjust, "invhessian" = invhessian, "conv" = opt$istop, "init" = param, "model" = model, "statut" = statut, "gamma" = gamma, "link" = link))
 }

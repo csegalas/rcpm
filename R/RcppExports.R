@@ -49,8 +49,8 @@ bilvsblNC <- function(param, data, nq, adapt, grp, weights, nodes, newnodes, new
     .Call('_rcpm_bilvsblNC', PACKAGE = 'rcpm', param, data, nq, adapt, grp, weights, nodes, newnodes, newweights, scorevar1, scorevar2, timevar, covariate, REadjust, model, link1, link2, objtrans1, objtrans2, gamma)
 }
 
-IndRePostDis <- function(re, data, rcpmeObj, scorevar, timevar, model, gamma, link) {
-    .Call('_rcpm_IndRePostDis', PACKAGE = 'rcpm', re, data, rcpmeObj, scorevar, timevar, model, gamma, link)
+IndRePostDis <- function(re, data, rcpmeObj, scorevar, timevar, model, statutvar, gamma, link) {
+    .Call('_rcpm_IndRePostDis', PACKAGE = 'rcpm', re, data, rcpmeObj, scorevar, timevar, model, statutvar, gamma, link)
 }
 
 IndRePostDis2 <- function(re, data, rcpmeObj, scorevar, timevar, model, gamma, link) {

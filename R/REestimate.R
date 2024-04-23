@@ -11,13 +11,14 @@ REestimate <- function(rcpmeObj, longdata, var = FALSE, onlytau = FALSE){
   
   formu <- rcpmeObj$formula
   model <- rcpmeObj$model
+  statutvar <- rcpmeObj$statut
   if (is.null(model)){model <- "test"} # pour les vieilles sorties sans "model"
   gamma <- rcpmeObj$gamma
   if (is.null(gamma)){gamma <- 0.1} # pour les vieilles sorties sans "gamma"
   varsformu = all.vars(formu)
   
   if (length(varsformu) == 3){ # if univariate
-    
+
     scorevar = varsformu[1]
     timevar = varsformu[2]
     groupvar = varsformu[3]
@@ -32,11 +33,9 @@ REestimate <- function(rcpmeObj, longdata, var = FALSE, onlytau = FALSE){
     
     if (onlytau == FALSE){
       re <- rep(0,4)
-      if (var == FALSE) {return(lapply(split(longdata,longdata[,groupvar]),function(x){if(sum(!is.na(x[,scorevar])!=0)) {opt<-marqLevAlg(b = re, fn = IndRePostDis, minimize = FALSE, rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, timevar = timevar, model = model, gamma = gamma, link = link); if(opt$istop == 1) {return("par"=opt$b);} else {return("par"=re);}} else {return("par"=re);}}))}
-      if (var == TRUE) {return(lapply(split(longdata,longdata[,groupvar]),function(x){if(sum(!is.na(x[,scorevar])!=0)) {opt<-marqLevAlg(b = re, fn = IndRePostDis, minimize = FALSE, rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, timevar = timevar, model = model, gamma = gamma, link = link);if(opt$istop == 1) {return(list("par"=opt$b,"var"=matrix(c(opt$v[c(1,2,4,7,2,3,5,8,4,5,6,9,7,8,9,10)]), nrow = 4, byrow=TRUE)));} else {return(list("par"=re, "var"=diag(4)))}} else {return(list("par"=re, "var"=diag(4)))}}))}
-    }
-    
-    else {
+      if (var == FALSE) {return(lapply(split(longdata,longdata[,groupvar]), function(x){if(sum(!is.na(x[,scorevar])!=0)) {opt<-marqLevAlg(b = re, fn = IndRePostDis, minimize = FALSE, rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, timevar = timevar, model = model, statutvar = statutvar, gamma = gamma, link = link); if(opt$istop == 1) {return("par"=opt$b);} else {return("par"=re);}} else {return("par"=re);}}))}
+      if (var == TRUE) {return(lapply(split(longdata,longdata[,groupvar]),function(x){if(sum(!is.na(x[,scorevar])!=0)) {opt<-marqLevAlg(b = re, fn = IndRePostDis, minimize = FALSE, rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, timevar = timevar, model = model, statutvar = statutvar, gamma = gamma, link = link);if(opt$istop == 1) {return(list("par"=opt$b,"var"=matrix(c(opt$v[c(1,2,4,7,2,3,5,8,4,5,6,9,7,8,9,10)]), nrow = 4, byrow=TRUE)));} else {return(list("par"=re, "var"=diag(4)))}} else {return(list("par"=re, "var"=diag(4)))}}))}
+    } else {
       re <- 0
       if (var == FALSE) {return(lapply(split(longdata,longdata[,groupvar]),function(x){if(sum(!is.na(x[,scorevar])!=0)) {opt<-marqLevAlg(b = re, fn = IndRePostDis2, minimize = FALSE, rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, timevar = timevar, model = model, gamma = gamma, link = link);if(opt$istop ==1) {return("par"=opt$b);} else {return("par"=re);}} else {return("par"=re);}}))}
       if (var == TRUE) {return(lapply(split(longdata,longdata[,groupvar]),function(x){if(sum(!is.na(x[,scorevar])!=0)) {opt<-marqLevAlg(b = re, fn = IndRePostDis2, minimize = FALSE, rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, timevar = timevar, model = model, gamma = gamma, link = link);if(opt$istop == 1) {return(list("par"=opt$b,"var"=opt$v));} else {return(list("par"=0, "var"=1))};} else {return(list("par"=0, "var"=1))}}))}
