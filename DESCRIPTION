@@ -1,9 +1,9 @@
 Package: rcpm
 Type: Package
 Title: Testing the existence of a random changepoint and estimating univariate and bivariate random changepoint models.
-Version: 0.1
+Version: 1.0
 Date: 2018-07-23
-Author: person("Corentin", "Ségalas", email = "corentin.segalas@u-bordeaux.fr",
+Author: person("Corentin", "Segalas", email = "corentin.segalas@u-bordeaux.fr",
   role = c("aut", "cre"))
 Description: More about what it does (maybe more than one line)
 License: LGPL (>= 3)
