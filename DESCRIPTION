@@ -1,14 +1,16 @@
 Package: rcpm
 Type: Package
-Title: What the package does (short line)
-Version: 1.0
+Title: Testing the existence of a random changepoint and estimating univariate and bivariate random changepoint models.
+Version: 0.1
 Date: 2018-07-23
-Author: Who wrote it
-Maintainer: Who to complain to <yourfault@somewhere.net>
+Author: person("Corentin", "Ségalas", email = "corentin.segalas@u-bordeaux.fr",
+  role = c("aut", "cre"))
 Description: More about what it does (maybe more than one line)
-License: What license is it under?
+License: LGPL (>= 3)
 LazyData: true
 Imports: marqLevAlg, splines2, nlme, mvtnorm, ggplot2
 LinkingTo: Rcpp, RcppArmadillo
 RoxygenNote: 7.2.3
+URL: https://github.com/csegalas/rcpm
+BugReports: https://github.com/csegalas/rcpm/issues
 Encoding: UTF-8
