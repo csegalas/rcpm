@@ -15,6 +15,9 @@
 #' @export
 #'
 #' @examples
+
+library(marqLevAlg)
+
 rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 0.1, nbnodes = 10, param = NULL, model = "test", link = "linear", statut = NULL, latent = FALSE, classprob = NULL){
   
   if (covariate == "NULL" & REadjust != "no") stop("Need a covariate to adjust random effects variance structure.")
@@ -29,23 +32,34 @@ rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 
   # =============================================
   
   if(!is.null(statut)){
-    # on construit la base control et la base cas
-    longdata1 = longdata[longdata[statut] == 0,]
-    longdata2 = longdata[longdata[statut] == 1,]
+    # Extract the variable names from the formula
+    score_var_name = all.vars(formu)[1]
+    time_var_name = all.vars(formu)[2]
+    group_var_name = all.vars(formu)[3]
     
-    # on cree les objets pr les controls
-    scorevar = longdata1[,all.vars(formu)[1]]
-    timevar = longdata1[,all.vars(formu)[2]]
-    groupvar = longdata1[,all.vars(formu)[3]]
-    ngroupvar = rep(seq(length(unique(groupvar))), by(longdata1,groupvar,function(x){return(dim(x)[[1]])}))
+    # Create subsets for control and cases
+    longdata1 <- longdata[longdata$statut == 0,]
+    longdata2 <- longdata[longdata$statut == 1,]
+    
+    # Extract score, time, and group variables for controls
+    scorevar <- longdata1[[score_var_name]]
+    timevar <- longdata1[[time_var_name]]
+    groupvar <- longdata1[[group_var_name]]
+    
+    # Calculate the number of repetitions for each group for controls
+    ngroupvar <- rep(seq_along(unique(groupvar)), times = table(groupvar))
+    
+    # Bind the new variable to the data frame for controls
     longdata <- cbind(longdata1, ngroupvar)
+    
+    # Apply the transformation (assumed function datatrans available)
     objtrans <- datatrans(scorevar, ngroupvar, link)
     
-    # et pour les cas
-    scorevar2 = longdata2[,all.vars(formu)[1]]
-    timevar2 = longdata2[,all.vars(formu)[2]]
-    groupvar2 = longdata2[,all.vars(formu)[3]]
-    ngroupvar2 = rep(seq(length(unique(groupvar2))), by(longdata2,groupvar2,function(x){return(dim(x)[[1]])}))
+    # Repeat the process for cases
+    scorevar2 <- longdata2[[score_var_name]]
+    timevar2 <- longdata2[[time_var_name]]
+    groupvar2 <- longdata2[[group_var_name]]
+    ngroupvar2 <- rep(seq_along(unique(groupvar2)), times = table(groupvar2))
     longdata2 <- cbind(longdata2, ngroupvar2)
     objtrans2 <- datatrans(scorevar2, ngroupvar2, link)
   }
@@ -58,8 +72,10 @@ rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 
     longdata <- cbind(longdata, ngroupvar)
     objtrans <- datatrans(scorevar, ngroupvar, link)
   }
-
-  if (covariate != "NULL") adjustvar = longdata[,covariate]
+  
+  if (covariate != "NULL") {
+    adjustvar = longdata[,covariate]
+  } 
   ghcoeff <- gauher(nbnodes)
   nodes <- sqrt(2) * ghcoeff$x
   weights <- ghcoeff$w / sqrt(pi)
@@ -93,7 +109,7 @@ rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 
       #             random = ~ date, 
       #             subject = all.vars(formu)[3], 
       #             data = longdata, ng = 1, link="3-quant-splines")
-
+      
       
       param <- c(lmm$coefficients$fixed[1:2], -0.5, median(timevar), nlme::VarCorr(lmm)[c(3,1),2],0,0,1,0,1,1)
       param <- as.numeric(param)
@@ -112,12 +128,11 @@ rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 
       param <- c(param, rep(0, lgtclassprob+1))
     }
   }
-
-
+  #
+  
   if(is.null(statut)){
     opt <- marqLevAlg(b=param,fn=lvsblNCgenR, minimize = FALSE, data=split(longdata, longdata[,"ngroupvar"]),nq=nbnodes,grp=ngroupvar,weights=weights, nodes=nodes, scorevar = all.vars(formu)[1], timevar = all.vars(formu)[2], covariate = covariate, REadjust = REadjust, model = model, link = link, objtrans = objtrans, gamma = gamma, loglik = TRUE)
   }
-  
   if(!is.null(statut)){
     # optimisation du melange
     opt <- marqLevAlg(b=param,fn=lvsblclass, minimize = FALSE, data1=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}),data2=by(longdata2,longdata2[,"ngroupvar2"],function(x){return(x)}),nq=nbnodes,grp=ngroupvar,grp2=ngroupvar2,weights=weights, nodes=nodes, scorevar = all.vars(formu)[1], timevar = all.vars(formu)[2], covariate = covariate, REadjust = REadjust, model = model, link = link, objtrans = objtrans, objtrans2 = objtrans2, gamma = gamma, latent = latent, classprob = classprob)
