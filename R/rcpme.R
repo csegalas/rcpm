@@ -64,7 +64,7 @@ rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 
     objtrans2 <- datatrans(scorevar2, ngroupvar2, link)
   }
   
-  if(is.null(statut)){
+  else {
     scorevar = longdata[,all.vars(formu)[1]]
     timevar = longdata[,all.vars(formu)[2]]
     groupvar = longdata[,all.vars(formu)[3]]
@@ -133,7 +133,7 @@ rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 
   if(is.null(statut)){
     opt <- marqLevAlg(b=param,fn=lvsblNCgenR, minimize = FALSE, data=split(longdata, longdata[,"ngroupvar"]),nq=nbnodes,grp=ngroupvar,weights=weights, nodes=nodes, scorevar = all.vars(formu)[1], timevar = all.vars(formu)[2], covariate = covariate, REadjust = REadjust, model = model, link = link, objtrans = objtrans, gamma = gamma, loglik = TRUE)
   }
-  if(!is.null(statut)){
+  else {
     # optimisation du melange
     opt <- marqLevAlg(b=param,fn=lvsblclass, minimize = FALSE, data1=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}),data2=by(longdata2,longdata2[,"ngroupvar2"],function(x){return(x)}),nq=nbnodes,grp=ngroupvar,grp2=ngroupvar2,weights=weights, nodes=nodes, scorevar = all.vars(formu)[1], timevar = all.vars(formu)[2], covariate = covariate, REadjust = REadjust, model = model, link = link, objtrans = objtrans, objtrans2 = objtrans2, gamma = gamma, latent = latent, classprob = classprob)
   }
