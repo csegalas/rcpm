@@ -435,7 +435,7 @@ arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector gr
       if (covariate == "NULL"){
         // if no covariate
         arma::mat Zk = arma::ones<arma::mat>(lgt,3);
-        if ((model == "test") | (model == "isplines")){Zk.col(1) = timeNoNA;}
+        if ((model == "test") | (model == "isplines") | ( model == "linear-linear")){Zk.col(1) = timeNoNA;}
         arma::colvec muk = arma::zeros<arma::colvec>(lgt);
         arma::mat Vk = arma::zeros<arma::mat>(lgt,lgt);
         for (int k = 0; k < nq; ++k){
@@ -448,6 +448,13 @@ arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector gr
             }
             Zk.col(2) = trans(paramspl * basespl);
             }
+          if (model == 'linear-linear') {
+            arma::colvec basevec = arma::zeros<arma::colvec>(lgt);
+            for (int l = 0; l<lgt; l++){
+              basevec(l) = (timeNoNA(l) - tau - Utau*nodes(k))*(1/(1+exp(-gamma*(timeNoNA(l) - tau - Utau*nodes(k)))));
+            }
+            Zk.col(2) =  trans(basevec)
+          }
           muk = Zk * Betas;
           Vk = (Zk * B) * trans(Zk) + pow(sigma,2) * arma::eye<arma::mat>(lgt,lgt);
           double f = dmvnrmarma1d(trans(tY.col(0)), trans(muk), Vk);

@@ -34,7 +34,7 @@ lvsblclass_penalized <- function(param, data1, data2, nq, grp, grp2, weights, no
     }
     lik3 <- lvsblNCgen(param, data1, nq, grp, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, gamma, loglik = FALSE)
     lik4 <- lvsbllin(paramlin, data1, grp, scorevar, timevar, link, objtrans, loglik = FALSE)
-    out = loglik1 + sum(log((1-prob)*lik4 + prob*lik3)) + lambda * param[rk4+1] 
+    out = loglik1 + sum(log((1-prob)*lik4 + prob*lik3)) - lambda * param[rk4+1] 
   }
   
   return(out)
