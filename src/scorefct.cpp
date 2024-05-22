@@ -448,12 +448,12 @@ arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector gr
             }
             Zk.col(2) = trans(paramspl * basespl);
             }
-          if (model == 'linear-linear') {
+          if (model == "linear-linear") {
             arma::colvec basevec = arma::zeros<arma::colvec>(lgt);
             for (int l = 0; l<lgt; l++){
               basevec(l) = (timeNoNA(l) - tau - Utau*nodes(k))*(1/(1+exp(-gamma*(timeNoNA(l) - tau - Utau*nodes(k)))));
             }
-            Zk.col(2) =  trans(basevec)
+            Zk.col(2) =  basevec;
           }
           muk = Zk * Betas;
           Vk = (Zk * B) * trans(Zk) + pow(sigma,2) * arma::eye<arma::mat>(lgt,lgt);

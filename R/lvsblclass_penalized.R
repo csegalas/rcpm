@@ -1,4 +1,4 @@
-lvsblclass_penalized <- function(param, data1, data2, nq, grp, grp2, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, objtrans2, gamma, latent, classprob, lambda){
+lvsblclass_penalized <- function(param, data1, data2, nq, grp, grp2, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, objtrans2, gamma, latent, classprob, membership, lambda){
   
   rk0 = 3 - (model == "isplines")
   rk1 = 4 + (link == "linear") - (model == "isplines")
@@ -22,15 +22,20 @@ lvsblclass_penalized <- function(param, data1, data2, nq, grp, grp2, weights, no
   }
   
   if (latent == TRUE){
-    lgtclassprob = length(all.vars(classprob))
-    if (lgtclassprob > 0){
-      # extract class membership parameters
-      classmbpar <- as.matrix(param[seq(rk4+2,rk4+lgtclassprob+1)], ncol = lgtclassprob)
-      # extract class membership dep var
-      classmbvar <- matrix(unlist(lapply(data1, function(x) return(x[1,all.vars(classprob)]))), ncol = lgtclassprob, byrow = TRUE)
-      prob <- exp(param[rk4+1] + classmbvar %*% classmbpar)/(1+exp(param[rk4+1] + classmbvar %*% classmbpar))
-    } else {
-      prob <- exp(param[rk4+1])/(1+exp(param[rk4+1]))
+    if(is.null(membership)){
+      lgtclassprob = length(all.vars(classprob))
+      if (lgtclassprob > 0){
+        # extract class membership parameters
+        classmbpar <- as.matrix(param[seq(rk4+2,rk4+lgtclassprob+1)], ncol = lgtclassprob)
+        # extract class membership dep var
+        classmbvar <- matrix(unlist(lapply(data1, function(x) return(x[1,all.vars(classprob)]))), ncol = lgtclassprob, byrow = TRUE)
+        prob <- exp(param[rk4+1] + classmbvar %*% classmbpar)/(1+exp(param[rk4+1] + classmbvar %*% classmbpar))
+      } else {
+        prob <- exp(param[rk4+1])/(1+exp(param[rk4+1]))
+      }
+    }
+    else {
+      prob <- membership
     }
     lik3 <- lvsblNCgen(param, data1, nq, grp, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, gamma, loglik = FALSE)
     lik4 <- lvsbllin(paramlin, data1, grp, scorevar, timevar, link, objtrans, loglik = FALSE)

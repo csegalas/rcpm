@@ -10,6 +10,7 @@
 #' @param model An optional string indicating which formulation of the random changepoint exists. The first model, `test`, is \eqn{Y_ij = \beta_{0i} + \beta_{1i}t_{ij} + \beta_{2i}\sqrt{(t_{ij}-\tau_i)^2+\gamma} + \epsilon_{ij}} used by the `testRCPMM` function. The second is `bw` for the Bacon-Watts formulation of the model \eqn{Y_ij = \beta_{0i} + \beta_{1i}(t_{ij}-\tau_i) + \beta_{2i}\sqrt{(t_{ij}-\tau_i)^2+\gamma} + \epsilon_{ij}}. The third option is `isplines` for the I-spline model. When used for estimation purpose, you should either `bw` or `isplines` which has clear interpretability properties. Default to `bw`
 #' @param link An optional string indicating which link function is to be used. This link function is used to deal with non-gaussian data. With `link=splines` the model estimates an appropriate I-spline link function `g` so that `g(scorevar)` is a gaussian variable. If data is already gaussian, you can chose `link=linear` so that no link function will be estimated. Default to `linear`.
 #' @param statut An optional string indicating a binary variable from which two class are considered: a linear class for subjects with \code{statut=0} and a random changepoint class for subjects with \code{statut=1}. Default to NULL.
+#' @param membership an optional string indicating whether the proportion of the controls belonging to the class with an accelerating decline. This proportion can take values from zero to one, with respectively 0 meaning non of the controls have an alternative trajectory while 1 means that all controls have an accelerated trajectory. "NULL" means that the proportion will be estimated using the semi-latent class.
 #'
 #' @return The output contains several objects : \code{call} is the function call; \code{loglik} is the value of the log-likelihood at the optimum; \code{formula} is the formula describing which variables are used in the model; \code{fixed} contains all fixed parameters estimates, standard errors, CIs, wald test statistic and corresponding pvalue when possible; \code{sdres} the estimated residual error; \code{VarEA} a 4x4 matrix or a list of 4x4 matrices - if there is some covariate for example - containing the estimated random effects covariance matrix; \code{optpar} the optimal parameters maximizing the log-likelihood; \code{covariate} the covariate declared in the function call; \code{REadjust} the string indicating how random effects structure is handled as declared in the function call, \code{invhessian} the covariance matrix containing all the standard errors and correlations of the parameter estimates; \code{conv} an index of successful convergance, equals to 1 if success; \code{init} the initial values vector; \code{model} the model used during estimation; \code{gamma} the value of gamma used during estimation; \code{link} the link function used during estimation.
 #' @export
@@ -17,13 +18,13 @@
 #' @examples
 
 library(marqLevAlg)
-
-rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 0.1, nbnodes = 10, param = NULL, model = "test", link = "linear", statut = NULL, latent = FALSE, classprob = NULL, lambda = 0){
+print('succesfully loaded')
+rcpme<- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 0.1, nbnodes = 10, param = NULL, model = "test", link = "linear", statut = NULL, latent = FALSE, classprob = NULL, membership = NULL, lambda = 0){
   
+  if( ((membership <= 0) & (!is.null(membership))) | ((membership >= 1) & (!is.null(membership)))) stop("membership is not well defined")
   if (covariate == "NULL" & REadjust != "no") stop("Need a covariate to adjust random effects variance structure.")
   if (REadjust == "prop") stop("It has not been implemented yet. Sorry for the inconvenience...")
   lparam = 12 +2*(model == "isplines") + 4*(link=="splines") + (covariate != "NULL")*(4*(REadjust=="no")+ 5*(REadjust=="prop")+11*(REadjust=="yes"))
-  print(lparam)
   if (!is.null(param) & (length(param) != lparam)) stop(paste("Initial parameters vector must be a vector of size ", lparam, ".", sep = ""))
   rk0 = 3 - (model == "isplines")
   rk1 = 4 + (link == "linear") - (model == "isplines")
@@ -136,8 +137,7 @@ rcpme <- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 
   }
   else {
     # optimisation du melange
-    opt <- marqLevAlg(b=param,fn=lvsblclass_penalized, minimize = FALSE, data1=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}),data2=by(longdata2,longdata2[,"ngroupvar2"],function(x){return(x)}),nq=nbnodes,grp=ngroupvar,grp2=ngroupvar2,weights=weights, nodes=nodes, scorevar = all.vars(formu)[1], timevar = all.vars(formu)[2], covariate = covariate, REadjust = REadjust, model = model, link = link, objtrans = objtrans, objtrans2 = objtrans2, gamma = gamma, latent = latent, classprob = classprob, lambda = lambda)
-    save(opt, file = "C:/Users/Yusuf/Documents/rcpm/models/opt.RData") 
+    opt <- marqLevAlg(b=param,fn=lvsblclass_penalized, minimize = FALSE, data1=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}),data2=by(longdata2,longdata2[,"ngroupvar2"],function(x){return(x)}),nq=nbnodes,grp=ngroupvar,grp2=ngroupvar2,weights=weights, nodes=nodes, scorevar = all.vars(formu)[1], timevar = all.vars(formu)[2], covariate = covariate, REadjust = REadjust, model = model, link = link, objtrans = objtrans, objtrans2 = objtrans2, gamma = gamma, latent = latent, classprob = classprob, membership = membership, lambda = lambda)
   }
   
   # OUT : fixed parameters ===========================================================================================
