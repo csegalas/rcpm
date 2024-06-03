@@ -37,8 +37,8 @@ transfY <- function(Y, link, param, objtransi) {
     .Call('_rcpm_transfY', PACKAGE = 'rcpm', Y, link, param, objtransi)
 }
 
-lvsblNCgen <- function(param, data, nq, grp, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, gamma, loglik) {
-    .Call('_rcpm_lvsblNCgen', PACKAGE = 'rcpm', param, data, nq, grp, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, gamma, loglik)
+lvsblNCgen <- function(param, data, nq, grp, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, gamma, loglik, two_means) {
+    .Call('_rcpm_lvsblNCgen', PACKAGE = 'rcpm', param, data, nq, grp, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, gamma, loglik, two_means)
 }
 
 lvsbllin <- function(param, data, grp, scorevar, timevar, link, objtrans, loglik) {

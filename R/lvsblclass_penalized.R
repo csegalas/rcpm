@@ -1,8 +1,8 @@
-lvsblclass_penalized <- function(param, data1, data2, nq, grp, grp2, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, objtrans2, gamma, latent, classprob, membership, lambda){
+lvsblclass_penalized <- function(param, data1, data2, nq, grp, grp2, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, objtrans2, gamma, latent, classprob, two_means, membership, lambda){
   
   rk0 = 3 - (model == "isplines")
   rk1 = 4 + (link == "linear") - (model == "isplines")
-  rk4 = rk1 + 7 + (covariate !="NULL")*(4*(REadjust=="no") + 5*(REadjust=="prop") + 11*(REadjust=="yes")) + 5*(link=="isplines") + 3*(model=="isplines")
+  rk4 = rk1 + 7 + (covariate !="NULL")*(4*(REadjust=="no") + 5*(REadjust=="prop") + 11*(REadjust=="yes")) + 5*(link=="isplines") + 3*(model=="isplines") + (two_means)
   
   # on vire les parametres inutiles ds l'esti du modele lineaire
   if (link == "linear"){
@@ -14,10 +14,15 @@ lvsblclass_penalized <- function(param, data1, data2, nq, grp, grp2, weights, no
   }
   
   
-  loglik1 <- sum(lvsblNCgen(param, data2, nq, grp2, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans2, gamma, loglik = TRUE))
+  loglik1 <- sum(lvsblNCgen(param, data2, nq, grp2, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans2, gamma, loglik = TRUE, two_means = FALSE))
   
   if (latent == FALSE){
     loglik2 <- sum(lvsbllin(paramlin, data1, grp, scorevar, timevar, link, objtrans, loglik = TRUE))
+    out = loglik1 + loglik2
+  }
+  
+  if(two_means == TRUE) {
+    loglik2 <- sum(lvsblNCgen(param, data1, nq, grp, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, gamma, loglik = FALSE, two_means = TRUE))
     out = loglik1 + loglik2
   }
   
@@ -37,7 +42,7 @@ lvsblclass_penalized <- function(param, data1, data2, nq, grp, grp2, weights, no
     else {
       prob <- membership
     }
-    lik3 <- lvsblNCgen(param, data1, nq, grp, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, gamma, loglik = FALSE)
+    lik3 <- lvsblNCgen(param, data1, nq, grp, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, gamma, loglik = FALSE, two_means = FALSE)
     lik4 <- lvsbllin(paramlin, data1, grp, scorevar, timevar, link, objtrans, loglik = FALSE)
     out = loglik1 + sum(log((1-prob)*lik4 + prob*lik3)) - lambda * param[rk4+1] 
   }

@@ -11,7 +11,7 @@
 #' @param link An optional string indicating which link function is to be used. This link function is used to deal with non-gaussian data. With `link=splines` the model estimates an appropriate I-spline link function `g` so that `g(scorevar)` is a gaussian variable. If data is already gaussian, you can chose `link=linear` so that no link function will be estimated. Default to `linear`.
 #' @param statut An optional string indicating a binary variable from which two class are considered: a linear class for subjects with \code{statut=0} and a random changepoint class for subjects with \code{statut=1}. Default to NULL.
 #' @param membership an optional string indicating whether the proportion of the controls belonging to the class with an accelerating decline. This proportion can take values from zero to one, with respectively 0 meaning non of the controls have an alternative trajectory while 1 means that all controls have an accelerated trajectory. "NULL" means that the proportion will be estimated using the semi-latent class.
-#'
+#' @param two-means a variable indicating whether the random changepoint should be estimated using two means. 
 #' @return The output contains several objects : \code{call} is the function call; \code{loglik} is the value of the log-likelihood at the optimum; \code{formula} is the formula describing which variables are used in the model; \code{fixed} contains all fixed parameters estimates, standard errors, CIs, wald test statistic and corresponding pvalue when possible; \code{sdres} the estimated residual error; \code{VarEA} a 4x4 matrix or a list of 4x4 matrices - if there is some covariate for example - containing the estimated random effects covariance matrix; \code{optpar} the optimal parameters maximizing the log-likelihood; \code{covariate} the covariate declared in the function call; \code{REadjust} the string indicating how random effects structure is handled as declared in the function call, \code{invhessian} the covariance matrix containing all the standard errors and correlations of the parameter estimates; \code{conv} an index of successful convergance, equals to 1 if success; \code{init} the initial values vector; \code{model} the model used during estimation; \code{gamma} the value of gamma used during estimation; \code{link} the link function used during estimation.
 #' @export
 #'
@@ -19,9 +19,11 @@
 
 library(marqLevAlg)
 print('succesfully loaded')
-rcpme<- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 0.1, nbnodes = 10, param = NULL, model = "test", link = "linear", statut = NULL, latent = FALSE, classprob = NULL, membership = NULL, lambda = 0){
+rcpme<- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 0.1, nbnodes = 10, param = NULL, model = "test", link = "linear", statut = NULL, latent = FALSE, classprob = NULL, two_means = FALSE, membership = NULL, lambda = 0){
   
-  if( ((membership <= 0) & (!is.null(membership))) | ((membership >= 1) & (!is.null(membership)))) stop("membership is not well defined")
+  if(!is.null(membership)){
+    if((membership <= 0) | (membership >= 1)) stop("membership is not well defined")
+  }
   if (covariate == "NULL" & REadjust != "no") stop("Need a covariate to adjust random effects variance structure.")
   if (REadjust == "prop") stop("It has not been implemented yet. Sorry for the inconvenience...")
   lparam = 12 +2*(model == "isplines") + 4*(link=="splines") + (covariate != "NULL")*(4*(REadjust=="no")+ 5*(REadjust=="prop")+11*(REadjust=="yes"))
@@ -125,6 +127,9 @@ rcpme<- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 0
     if (model == "isplines"){
       param <- c(param[-3], rep(2,3))
     }
+    if (two_means) {
+      param <- c(param, rep(0, 1))
+    }
     
     if (!is.null(classprob)){
       param <- c(param, rep(0, lgtclassprob+1))
@@ -137,7 +142,7 @@ rcpme<- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 0
   }
   else {
     # optimisation du melange
-    opt <- marqLevAlg(b=param,fn=lvsblclass_penalized, minimize = FALSE, data1=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}),data2=by(longdata2,longdata2[,"ngroupvar2"],function(x){return(x)}),nq=nbnodes,grp=ngroupvar,grp2=ngroupvar2,weights=weights, nodes=nodes, scorevar = all.vars(formu)[1], timevar = all.vars(formu)[2], covariate = covariate, REadjust = REadjust, model = model, link = link, objtrans = objtrans, objtrans2 = objtrans2, gamma = gamma, latent = latent, classprob = classprob, membership = membership, lambda = lambda)
+    opt <- marqLevAlg(b=param,fn=lvsblclass_penalized, minimize = FALSE, data1=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}),data2=by(longdata2,longdata2[,"ngroupvar2"],function(x){return(x)}),nq=nbnodes,grp=ngroupvar,grp2=ngroupvar2,weights=weights, nodes=nodes, scorevar = all.vars(formu)[1], timevar = all.vars(formu)[2], covariate = covariate, REadjust = REadjust, model = model, link = link, objtrans = objtrans, objtrans2 = objtrans2, gamma = gamma, latent = latent, classprob = classprob, two_means = two_means, membership = membership, lambda = lambda)
   }
   
   # OUT : fixed parameters ===========================================================================================

@@ -362,7 +362,7 @@ arma::mat transfY(arma::colvec Y, String link, arma::colvec param, List objtrans
 
 // [[Rcpp::depends("RcppArmadillo")]]
 // [[Rcpp::export]]
-arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, NumericVector weights, NumericVector nodes, String scorevar, String timevar, String covariate, String REadjust, String model, String link, List objtrans, double gamma, bool loglik){
+arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, NumericVector weights, NumericVector nodes, String scorevar, String timevar, String covariate, String REadjust, String model, String link, List objtrans, double gamma, bool loglik, bool two_means){
   
   //// extraction des parametres selon les cas (link, cov/REadjust, model)
   // CP trajectory parameters
@@ -397,6 +397,8 @@ arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector gr
     paramtrans = pow(as<arma::colvec>(param[idx]),2);
   }
   
+  
+  
   // ispline model parameters
   arma::rowvec paramspl = arma::ones<arma::rowvec>(3);
   int rk4 = rk3;
@@ -404,6 +406,11 @@ arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector gr
     rk4 = rk3 + 3;
     IntegerVector idx = IntegerVector::create(rk3+1, rk3+2, rk3+3);
     paramspl = pow(as<arma::rowvec>(param[idx]),2);
+  }
+  if(two_means) {
+    rk4 = rk4 + 1;
+    double mu_con = param(rk4);
+    tau = mu_con + tau;
   }
  
   int N = max(grp);
