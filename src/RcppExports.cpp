@@ -302,6 +302,184 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// jacobi_eigenvalue
+List jacobi_eigenvalue(int n, NumericMatrix A, int it_max);
+RcppExport SEXP _rcpm_jacobi_eigenvalue(SEXP nSEXP, SEXP ASEXP, SEXP it_maxSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type A(ASEXP);
+    Rcpp::traits::input_parameter< int >::type it_max(it_maxSEXP);
+    rcpp_result_gen = Rcpp::wrap(jacobi_eigenvalue(n, A, it_max));
+    return rcpp_result_gen;
+END_RCPP
+}
+// moment_method
+Rcpp::List moment_method(int n, Rcpp::NumericVector moment);
+RcppExport SEXP _rcpm_moment_method(SEXP nSEXP, SEXP momentSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type moment(momentSEXP);
+    rcpp_result_gen = Rcpp::wrap(moment_method(n, moment));
+    return rcpp_result_gen;
+END_RCPP
+}
+// moments_normal
+NumericVector moments_normal(int m, double mu, double sigma);
+RcppExport SEXP _rcpm_moments_normal(SEXP mSEXP, SEXP muSEXP, SEXP sigmaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type m(mSEXP);
+    Rcpp::traits::input_parameter< double >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< double >::type sigma(sigmaSEXP);
+    rcpp_result_gen = Rcpp::wrap(moments_normal(m, mu, sigma));
+    return rcpp_result_gen;
+END_RCPP
+}
+// moments_truncated_normal_a
+NumericVector moments_truncated_normal_a(int m, double mu, double sigma, double a);
+RcppExport SEXP _rcpm_moments_truncated_normal_a(SEXP mSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP aSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type m(mSEXP);
+    Rcpp::traits::input_parameter< double >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< double >::type sigma(sigmaSEXP);
+    Rcpp::traits::input_parameter< double >::type a(aSEXP);
+    rcpp_result_gen = Rcpp::wrap(moments_truncated_normal_a(m, mu, sigma, a));
+    return rcpp_result_gen;
+END_RCPP
+}
+// moments_truncated_normal_b
+NumericVector moments_truncated_normal_b(int m, double mu, double sigma, double b);
+RcppExport SEXP _rcpm_moments_truncated_normal_b(SEXP mSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP bSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type m(mSEXP);
+    Rcpp::traits::input_parameter< double >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< double >::type sigma(sigmaSEXP);
+    Rcpp::traits::input_parameter< double >::type b(bSEXP);
+    rcpp_result_gen = Rcpp::wrap(moments_truncated_normal_b(m, mu, sigma, b));
+    return rcpp_result_gen;
+END_RCPP
+}
+// r8_huge
+double r8_huge();
+RcppExport SEXP _rcpm_r8_huge() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(r8_huge());
+    return rcpp_result_gen;
+END_RCPP
+}
+// r8_mop
+double r8_mop(int i);
+RcppExport SEXP _rcpm_r8_mop(SEXP iSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type i(iSEXP);
+    rcpp_result_gen = Rcpp::wrap(r8_mop(i));
+    return rcpp_result_gen;
+END_RCPP
+}
+// r8mat_cholesky_factor_upper
+NumericMatrix r8mat_cholesky_factor_upper(int n, NumericMatrix a);
+RcppExport SEXP _rcpm_r8mat_cholesky_factor_upper(SEXP nSEXP, SEXP aSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type a(aSEXP);
+    rcpp_result_gen = Rcpp::wrap(r8mat_cholesky_factor_upper(n, a));
+    return rcpp_result_gen;
+END_RCPP
+}
+// r8mat_copy_new
+NumericMatrix r8mat_copy_new(int m, int n, NumericMatrix a1);
+RcppExport SEXP _rcpm_r8mat_copy_new(SEXP mSEXP, SEXP nSEXP, SEXP a1SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type m(mSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type a1(a1SEXP);
+    rcpp_result_gen = Rcpp::wrap(r8mat_copy_new(m, n, a1));
+    return rcpp_result_gen;
+END_RCPP
+}
+// r8mat_diag_get_vector
+NumericVector r8mat_diag_get_vector(int n, NumericMatrix a);
+RcppExport SEXP _rcpm_r8mat_diag_get_vector(SEXP nSEXP, SEXP aSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type a(aSEXP);
+    rcpp_result_gen = Rcpp::wrap(r8mat_diag_get_vector(n, a));
+    return rcpp_result_gen;
+END_RCPP
+}
+// r8mat_identity
+NumericMatrix r8mat_identity(int n);
+RcppExport SEXP _rcpm_r8mat_identity(SEXP nSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    rcpp_result_gen = Rcpp::wrap(r8mat_identity(n));
+    return rcpp_result_gen;
+END_RCPP
+}
+// truncated_normal_ab_moment
+double truncated_normal_ab_moment(int order, double mu, double s, double a, double b);
+RcppExport SEXP _rcpm_truncated_normal_ab_moment(SEXP orderSEXP, SEXP muSEXP, SEXP sSEXP, SEXP aSEXP, SEXP bSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type order(orderSEXP);
+    Rcpp::traits::input_parameter< double >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< double >::type s(sSEXP);
+    Rcpp::traits::input_parameter< double >::type a(aSEXP);
+    Rcpp::traits::input_parameter< double >::type b(bSEXP);
+    rcpp_result_gen = Rcpp::wrap(truncated_normal_ab_moment(order, mu, s, a, b));
+    return rcpp_result_gen;
+END_RCPP
+}
+// truncated_normal_a_moment
+double truncated_normal_a_moment(int order, double mu, double sigma, double a);
+RcppExport SEXP _rcpm_truncated_normal_a_moment(SEXP orderSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP aSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type order(orderSEXP);
+    Rcpp::traits::input_parameter< double >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< double >::type sigma(sigmaSEXP);
+    Rcpp::traits::input_parameter< double >::type a(aSEXP);
+    rcpp_result_gen = Rcpp::wrap(truncated_normal_a_moment(order, mu, sigma, a));
+    return rcpp_result_gen;
+END_RCPP
+}
+// truncated_normal_b_moment
+double truncated_normal_b_moment(int order, double mu, double sigma, double b);
+RcppExport SEXP _rcpm_truncated_normal_b_moment(SEXP orderSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP bSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type order(orderSEXP);
+    Rcpp::traits::input_parameter< double >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< double >::type sigma(sigmaSEXP);
+    Rcpp::traits::input_parameter< double >::type b(bSEXP);
+    rcpp_result_gen = Rcpp::wrap(truncated_normal_b_moment(order, mu, sigma, b));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_rcpm_dn", (DL_FUNC) &_rcpm_dn, 3},
@@ -320,6 +498,20 @@ static const R_CallMethodDef CallEntries[] = {
     {"_rcpm_IndRePostDis2", (DL_FUNC) &_rcpm_IndRePostDis2, 8},
     {"_rcpm_BivIndRePostDis", (DL_FUNC) &_rcpm_BivIndRePostDis, 10},
     {"_rcpm_BivIndRePostDis2", (DL_FUNC) &_rcpm_BivIndRePostDis2, 10},
+    {"_rcpm_jacobi_eigenvalue", (DL_FUNC) &_rcpm_jacobi_eigenvalue, 3},
+    {"_rcpm_moment_method", (DL_FUNC) &_rcpm_moment_method, 2},
+    {"_rcpm_moments_normal", (DL_FUNC) &_rcpm_moments_normal, 3},
+    {"_rcpm_moments_truncated_normal_a", (DL_FUNC) &_rcpm_moments_truncated_normal_a, 4},
+    {"_rcpm_moments_truncated_normal_b", (DL_FUNC) &_rcpm_moments_truncated_normal_b, 4},
+    {"_rcpm_r8_huge", (DL_FUNC) &_rcpm_r8_huge, 0},
+    {"_rcpm_r8_mop", (DL_FUNC) &_rcpm_r8_mop, 1},
+    {"_rcpm_r8mat_cholesky_factor_upper", (DL_FUNC) &_rcpm_r8mat_cholesky_factor_upper, 2},
+    {"_rcpm_r8mat_copy_new", (DL_FUNC) &_rcpm_r8mat_copy_new, 3},
+    {"_rcpm_r8mat_diag_get_vector", (DL_FUNC) &_rcpm_r8mat_diag_get_vector, 2},
+    {"_rcpm_r8mat_identity", (DL_FUNC) &_rcpm_r8mat_identity, 1},
+    {"_rcpm_truncated_normal_ab_moment", (DL_FUNC) &_rcpm_truncated_normal_ab_moment, 5},
+    {"_rcpm_truncated_normal_a_moment", (DL_FUNC) &_rcpm_truncated_normal_a_moment, 4},
+    {"_rcpm_truncated_normal_b_moment", (DL_FUNC) &_rcpm_truncated_normal_b_moment, 4},
     {NULL, NULL, 0}
 };
 

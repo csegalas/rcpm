@@ -19,7 +19,7 @@
 
 library(marqLevAlg)
 print('succesfully loaded')
-rcpme<- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 0.1, nbnodes = 10, param = NULL, model = "test", link = "linear", statut = NULL, latent = FALSE, classprob = NULL, two_means = FALSE, membership = NULL, lambda = 0, only_cases = FALSE, maxiter = 500 ) {
+rcpme<- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 0.1, nbnodes = 10, param = NULL, model = "test", link = "linear", statut = NULL, latent = FALSE, classprob = NULL, two_means = FALSE, membership = NULL, lambda = 0, only_cases = FALSE, maxiter = 500) {
   
   if(!is.null(membership)){
     if((membership <= 0) | (membership >= 1)) stop("membership is not well defined")

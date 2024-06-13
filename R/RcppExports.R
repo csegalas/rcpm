@@ -65,3 +65,59 @@ BivIndRePostDis2 <- function(re, data, rcpmeObj, scorevar1, scorevar2, timevar, 
     .Call('_rcpm_BivIndRePostDis2', PACKAGE = 'rcpm', re, data, rcpmeObj, scorevar1, scorevar2, timevar, model, gamma, link1, link2)
 }
 
+jacobi_eigenvalue <- function(n, A, it_max) {
+    .Call('_rcpm_jacobi_eigenvalue', PACKAGE = 'rcpm', n, A, it_max)
+}
+
+moment_method <- function(n, moment) {
+    .Call('_rcpm_moment_method', PACKAGE = 'rcpm', n, moment)
+}
+
+moments_normal <- function(m, mu, sigma) {
+    .Call('_rcpm_moments_normal', PACKAGE = 'rcpm', m, mu, sigma)
+}
+
+moments_truncated_normal_a <- function(m, mu, sigma, a) {
+    .Call('_rcpm_moments_truncated_normal_a', PACKAGE = 'rcpm', m, mu, sigma, a)
+}
+
+moments_truncated_normal_b <- function(m, mu, sigma, b) {
+    .Call('_rcpm_moments_truncated_normal_b', PACKAGE = 'rcpm', m, mu, sigma, b)
+}
+
+r8_huge <- function() {
+    .Call('_rcpm_r8_huge', PACKAGE = 'rcpm')
+}
+
+r8_mop <- function(i) {
+    .Call('_rcpm_r8_mop', PACKAGE = 'rcpm', i)
+}
+
+r8mat_cholesky_factor_upper <- function(n, a) {
+    .Call('_rcpm_r8mat_cholesky_factor_upper', PACKAGE = 'rcpm', n, a)
+}
+
+r8mat_copy_new <- function(m, n, a1) {
+    .Call('_rcpm_r8mat_copy_new', PACKAGE = 'rcpm', m, n, a1)
+}
+
+r8mat_diag_get_vector <- function(n, a) {
+    .Call('_rcpm_r8mat_diag_get_vector', PACKAGE = 'rcpm', n, a)
+}
+
+r8mat_identity <- function(n) {
+    .Call('_rcpm_r8mat_identity', PACKAGE = 'rcpm', n)
+}
+
+truncated_normal_ab_moment <- function(order, mu, s, a, b) {
+    .Call('_rcpm_truncated_normal_ab_moment', PACKAGE = 'rcpm', order, mu, s, a, b)
+}
+
+truncated_normal_a_moment <- function(order, mu, sigma, a) {
+    .Call('_rcpm_truncated_normal_a_moment', PACKAGE = 'rcpm', order, mu, sigma, a)
+}
+
+truncated_normal_b_moment <- function(order, mu, sigma, b) {
+    .Call('_rcpm_truncated_normal_b_moment', PACKAGE = 'rcpm', order, mu, sigma, b)
+}
+
