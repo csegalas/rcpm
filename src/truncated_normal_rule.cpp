@@ -136,7 +136,9 @@ List jacobi_eigenvalue(int n, NumericMatrix A, int it_max) {
 // [[Rcpp::export]]
 Rcpp::List moment_method(int n, Rcpp::NumericVector moment) {
   // Define the (n+1)x(n+1) Hankel matrix from the moments
-  arma::mat H(n + 1, n + 1);
+  Function chol("chol");   
+  Function eigen("eigen");
+  Rcpp::NumericMatrix H(n + 1, n + 1);
   for (int i = 0; i <= n; i++) {
     for (int j = 0; j <= n; j++) {
       H(i, j) = moment[i + j];
@@ -144,17 +146,17 @@ Rcpp::List moment_method(int n, Rcpp::NumericVector moment) {
   }
   
   // Compute the Cholesky factorization of the Hankel matrix
-  arma::mat R = arma::chol(H, "upper");
+  Rcpp::NumericMatrix R = chol(H);
   
   // Compute alpha and beta coefficients from the Cholesky factor
   Rcpp::NumericVector alpha(n);
   Rcpp::NumericVector beta(n - 1);
   alpha[0] = R(1, 0) / R(0, 0);
   for (int i = 1; i < n; i++) {
-    alpha[i] = R(i, i) / R(i, i) - R(i - 1, i - 1) / R(i - 1, i - 1);
-    if (i < n - 1) {
-      beta[i - 1] = R(i, i + 1) / R(i, i);
-    }
+    alpha[i] = R(i, i+1) / R(i, i) - R(i-1, i) / R(i-1, i-1);
+  }
+  for (int i = 0; i < n - 1; i++) {
+    beta[i] = R(i+1, i+1) / R(i, i);
   }
   
   // Construct the Jacobi matrix and perform custom jacobi eigenvalue decomposition
@@ -167,8 +169,7 @@ Rcpp::List moment_method(int n, Rcpp::NumericVector moment) {
     }
   }
   
-  // Compute eigenvalues and eigenvectors using the custom jacobi_eigenvalue function
-  List eigenResults = jacobi_eigenvalue(n, jacobi, 100);  // Assume it_max = 100 for example
+  List eigenResults = eigen(jacobi);  // Assume it_max = 100 for example
   
   NumericVector eigenvalues = eigenResults["values"];
   NumericMatrix eigenvectors = eigenResults["vectors"];
@@ -181,9 +182,7 @@ Rcpp::List moment_method(int n, Rcpp::NumericVector moment) {
   
   // Return the points and weights
   return Rcpp::List::create(Rcpp::Named("points") = eigenvalues,
-                            Rcpp::Named("weights") = w,
-                            Rcpp::Named("iterations") = eigenResults["iterations"],
-                                                                    Rcpp::Named("rotations") = eigenResults["rotations"]);
+                            Rcpp::Named("weights") = w, Rcpp::Named("R") = R, Rcpp::Named("jacobi") = jacobi, Rcpp::Named("H")= H);
 }
 //****************************************************************************80
 // Function to compute the double factorial
@@ -235,6 +234,7 @@ NumericVector moments_normal(int m, double mu, double sigma) {
 }
 
 //****************************************************************************80
+// [[Rcpp::export]]
 NumericVector moments_truncated_normal_ab(int m, double mu, double sigma, double a, double b) {
   if (a >= b) {
     stop("Lower truncation limit A must be less than upper truncation limit B.");

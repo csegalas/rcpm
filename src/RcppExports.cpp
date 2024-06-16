@@ -340,6 +340,21 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// moments_truncated_normal_ab
+NumericVector moments_truncated_normal_ab(int m, double mu, double sigma, double a, double b);
+RcppExport SEXP _rcpm_moments_truncated_normal_ab(SEXP mSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP aSEXP, SEXP bSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type m(mSEXP);
+    Rcpp::traits::input_parameter< double >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< double >::type sigma(sigmaSEXP);
+    Rcpp::traits::input_parameter< double >::type a(aSEXP);
+    Rcpp::traits::input_parameter< double >::type b(bSEXP);
+    rcpp_result_gen = Rcpp::wrap(moments_truncated_normal_ab(m, mu, sigma, a, b));
+    return rcpp_result_gen;
+END_RCPP
+}
 // moments_truncated_normal_a
 NumericVector moments_truncated_normal_a(int m, double mu, double sigma, double a);
 RcppExport SEXP _rcpm_moments_truncated_normal_a(SEXP mSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP aSEXP) {
@@ -501,6 +516,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_rcpm_jacobi_eigenvalue", (DL_FUNC) &_rcpm_jacobi_eigenvalue, 3},
     {"_rcpm_moment_method", (DL_FUNC) &_rcpm_moment_method, 2},
     {"_rcpm_moments_normal", (DL_FUNC) &_rcpm_moments_normal, 3},
+    {"_rcpm_moments_truncated_normal_ab", (DL_FUNC) &_rcpm_moments_truncated_normal_ab, 5},
     {"_rcpm_moments_truncated_normal_a", (DL_FUNC) &_rcpm_moments_truncated_normal_a, 4},
     {"_rcpm_moments_truncated_normal_b", (DL_FUNC) &_rcpm_moments_truncated_normal_b, 4},
     {"_rcpm_r8_huge", (DL_FUNC) &_rcpm_r8_huge, 0},

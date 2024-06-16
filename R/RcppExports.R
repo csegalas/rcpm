@@ -77,6 +77,10 @@ moments_normal <- function(m, mu, sigma) {
     .Call('_rcpm_moments_normal', PACKAGE = 'rcpm', m, mu, sigma)
 }
 
+moments_truncated_normal_ab <- function(m, mu, sigma, a, b) {
+    .Call('_rcpm_moments_truncated_normal_ab', PACKAGE = 'rcpm', m, mu, sigma, a, b)
+}
+
 moments_truncated_normal_a <- function(m, mu, sigma, a) {
     .Call('_rcpm_moments_truncated_normal_a', PACKAGE = 'rcpm', m, mu, sigma, a)
 }
