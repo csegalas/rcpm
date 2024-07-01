@@ -21,3 +21,4 @@ truncated_normal_quadrature <- function(N, a = NULL, b = NULL, mu, sigma){
   return(result)
   
 }
+
