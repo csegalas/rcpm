@@ -454,23 +454,27 @@ arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector gr
     double b = (-tau) / Utau;
     IntegerVector indices;
     NumericVector x = quadrature["x"];
-
     for (int i = 0; i < x.size(); i++) {
       if ((x[i] > a) && (x[i] < b)) {
         indices.push_back(i);
       }
     }
+    
     NumericVector w = quadrature["w"];
-
-    // Now use the indices to subset the columns
-    NumericVector x_subset = x[indices];
-    NumericVector w_subset = w[indices];
+  
+    
+    NumericVector x_subset(indices.size());
+    NumericVector w_subset(indices.size());
+    
+    for (int i = 0; i < indices.size(); i++) {
+      x_subset[i] = x[indices[i]];
+      w_subset[i] = w[indices[i]];
+    }
     
     // Recreate the DataFrame with subsetted columns
     quadrature = DataFrame::create(
       Named("x") = x_subset,
-      Named("w") = w_subset,
-      Named("stringsAsFactors") = false  // This is optional depending on your needs
+      Named("w") = w_subset
     );
     nodes = quadrature["x"];
     weights = quadrature["w"];
@@ -478,6 +482,7 @@ arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector gr
     //readjust the weights 
     weights = (sum1 / sum2) * weights;
     rk4 = rk4 + 1; 
+    nq = x_subset.size();
   }
   
   int N = max(grp);
