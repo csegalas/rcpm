@@ -19,18 +19,18 @@
 
 library(marqLevAlg)
 print('succesfully loaded')
-rcpme<- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 0.1, nbnodes = 10, param = NULL, model = "test", link = "linear", statut = NULL, latent = FALSE, classprob = NULL, two_means = FALSE, membership = NULL, lambda = 0, only_cases = FALSE, maxiter = 500, epsa = 1e-04, nproc = 1, verbose = FALSE) {
+rcpme<- function(longdata, formu, covariate = "NULL", age_of_diagnosis = NULL, REadjust = "no", gamma = 0.1, nbnodes = 10, param = NULL, model = "test", link = "linear", statut = NULL, latent = FALSE, classprob = NULL, two_means = FALSE, intercept = FALSE, membership = NULL, lambda = 0, only_cases = FALSE, maxiter = 500, epsa = 1e-04, nproc = 1, verbose = FALSE) {
   
   if(!is.null(membership)){
     if((membership <= 0) | (membership >= 1)) stop("membership is not well defined")
   }
   if (covariate == "NULL" & REadjust != "no") stop("Need a covariate to adjust random effects variance structure.")
   if (REadjust == "prop") stop("It has not been implemented yet. Sorry for the inconvenience...")
-  lparam = 12 +2*(model == "isplines") + 4*(link=="splines") + (covariate != "NULL")*(4*(REadjust=="no")+ 5*(REadjust=="prop")+11*(REadjust=="yes"))
+  lparam = 12 +2*(model == "isplines") + 4*(link=="splines") + (covariate != "NULL")*(3*(REadjust=="no")+ 5*(REadjust=="prop")+11*(REadjust=="yes"))+2*(two_means == TRUE) + (latent == TRUE) * (length(all.vars(classprob)) + 1) + 1*(intercept == TRUE)
   if (!is.null(param) & (length(param) != lparam)) stop(paste("Initial parameters vector must be a vector of size ", lparam, ".", sep = ""))
   rk0 = 3 - (model == "isplines")
   rk1 = 4 + (link == "linear") - (model == "isplines")
-  rk2 = rk1 + 7 + (covariate !="NULL")*(4*(REadjust=="no") + 5*(REadjust=="prop") + 11*(REadjust=="yes"))
+  rk2 = rk1 + 7 + (covariate !="NULL")*(3*(REadjust=="no") + 5*(REadjust=="prop") + 11*(REadjust=="yes"))
   lgtclassprob = length(all.vars(classprob))
   
   # =============================================
@@ -80,27 +80,36 @@ rcpme<- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 0
   if (covariate != "NULL") {
     adjustvar = longdata[,covariate]
   } 
+  
   ghcoeff <- gauher(nbnodes)
   nodes <- sqrt(2) * ghcoeff$x
   weights <- ghcoeff$w / sqrt(pi)
   
   if (is.null(param)){
+    if(is.null(age_of_diagnosis)){
+      median_time <- median(timevar)
+    }
+    else {
+      
+      median_time <- -8
+    }
     if (covariate != "NULL"){
       lmm <- nlme::lme(fixed = scorevar ~ 1 + timevar * adjustvar,
                        random = list(ngroupvar = nlme::pdSymm(~ 1 + timevar)),
                        na.action = na.omit,
                        method = "ML", control = nlme::lmeControl(opt = "optim"))  
       
-      param <- c(lmm$coefficients$fixed[1:2], -0.5, median(timevar), nlme::VarCorr(lmm)[c(3,1),2],0,0,1,0,1,1,lmm$coefficients$fixed[3:4],0,0)
+      param <- c(lmm$coefficients$fixed[1:2], -0.5, median_time, nlme::VarCorr(lmm)[c(3,1),2],0,0,1,0,1,1,lmm$coefficients$fixed[3:4],0)
       param <- as.numeric(param)
-      
+      print('here: ')
+      print(lmm$coefficients$fixed[3:4])
       if (REadjust == "yes"){
-        param <- c(lmm$coefficients$fixed[1:2], -0.5, median(timevar), nlme::VarCorr(lmm)[c(3,1),2],0,0,1,0,1,1,lmm$coefficients$fixed[3:4],0,0,0,0,0,0,0,0,0)
+        param <- c(lmm$coefficients$fixed[1:2], -0.5, median_time, nlme::VarCorr(lmm)[c(3,1),2],0,0,1,0,1,1,lmm$coefficients$fixed[3:4],0,0,0,0,0,0,0,0)
         param <- as.numeric(param)
       }
       
       if (REadjust == "prop"){ # fonctionne pas pour le moment
-        param <- c(lmm$coefficients$fixed[1:2], -0.5, median(timevar), nlme::VarCorr(lmm)[c(3,1),2],0,0,1,0,1,1,lmm$coefficients$fixed[3:4],0,0,0.1)
+        param <- c(lmm$coefficients$fixed[1:2], -0.5, median_time, nlme::VarCorr(lmm)[c(3,1),2],0,0,1,0,1,1,lmm$coefficients$fixed[3:4],0,0,0.1)
         param <- as.numeric(param)
       }
     }
@@ -115,7 +124,7 @@ rcpme<- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 0
       #             data = longdata, ng = 1, link="3-quant-splines")
       
       
-      param <- c(lmm$coefficients$fixed[1:2], -0.5, median(timevar), nlme::VarCorr(lmm)[c(3,1),2],0,0,1,0,1,1)
+      param <- c(lmm$coefficients$fixed[1:2], -0.5, median_time, nlme::VarCorr(lmm)[c(3,1),2],0,0,1,0,1,1)
       param <- as.numeric(param)
     }
     
@@ -127,10 +136,13 @@ rcpme<- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 0
     if (model == "isplines"){
       param <- c(param[-3], rep(2,3))
     }
-    if (two_means) {
-      param <- c(param, 15, 10)
+    if (two_means == TRUE) {
+      
+      param <- c(param, param[3], 1)
     }
-    
+    if (intercept == TRUE) {
+      param <- c(param, 2)
+    }
     if (!is.null(classprob) & latent == TRUE){
       param <- c(param, rep(0, lgtclassprob+1))
     }
@@ -142,7 +154,7 @@ rcpme<- function(longdata, formu, covariate = "NULL", REadjust = "no", gamma = 0
   }
   else {
     # optimisation du melange
-    opt <- marqLevAlg(b=param,fn=lvsblclass_penalized , minimize = FALSE, data1=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}),data2=by(longdata2,longdata2[,"ngroupvar2"],function(x){return(x)}),nq=nbnodes,grp=ngroupvar,grp2=ngroupvar2,weights=weights, nodes=nodes, scorevar = all.vars(formu)[1], timevar = all.vars(formu)[2], covariate = covariate, REadjust = REadjust, model = model, link = link, objtrans = objtrans, objtrans2 = objtrans2, gamma = gamma, latent = latent, classprob = classprob, two_means = two_means, membership = membership, lambda = lambda, only_cases = only_cases, maxiter = maxiter, epsa = epsa, epsb = epsa, epsd = epsa, print.info = verbose)
+    opt <- marqLevAlg(b=param,fn=lvsblclass_penalized , minimize = FALSE, data1=by(longdata,longdata[,"ngroupvar"],function(x){return(x)}),data2=by(longdata2,longdata2[,"ngroupvar2"],function(x){return(x)}),nq=nbnodes,grp=ngroupvar,grp2=ngroupvar2,weights=weights, nodes=nodes, scorevar = all.vars(formu)[1], timevar = all.vars(formu)[2], covariate = covariate, age_of_diagnosis = age_of_diagnosis, REadjust = REadjust, model = model, link = link, objtrans = objtrans, objtrans2 = objtrans2, gamma = gamma, latent = latent, classprob = classprob, two_means = two_means, intercept = intercept, membership = membership, lambda = lambda, only_cases = only_cases, maxiter = maxiter, epsa = epsa, epsb = epsa, epsd = epsa, print.info = verbose)
   }
   
   # OUT : fixed parameters ===========================================================================================

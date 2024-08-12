@@ -37,12 +37,12 @@ transfY <- function(Y, link, param, objtransi) {
     .Call('_rcpm_transfY', PACKAGE = 'rcpm', Y, link, param, objtransi)
 }
 
-lvsblNCgen <- function(param, data, nq, grp, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, gamma, loglik, two_means) {
-    .Call('_rcpm_lvsblNCgen', PACKAGE = 'rcpm', param, data, nq, grp, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, gamma, loglik, two_means)
+lvsblNCgen <- function(param, data, nq, grp, weights, nodes, scorevar, timevar, covariate, age_of_diagnosis, REadjust, model, link, objtrans, gamma, loglik, two_means, intercept) {
+    .Call('_rcpm_lvsblNCgen', PACKAGE = 'rcpm', param, data, nq, grp, weights, nodes, scorevar, timevar, covariate, age_of_diagnosis, REadjust, model, link, objtrans, gamma, loglik, two_means, intercept)
 }
 
-lvsbllin <- function(param, data, grp, scorevar, timevar, link, objtrans, loglik) {
-    .Call('_rcpm_lvsbllin', PACKAGE = 'rcpm', param, data, grp, scorevar, timevar, link, objtrans, loglik)
+lvsbllin <- function(param, data, grp, scorevar, timevar, link, objtrans, loglik, intercept, covariate) {
+    .Call('_rcpm_lvsbllin', PACKAGE = 'rcpm', param, data, grp, scorevar, timevar, link, objtrans, loglik, intercept, covariate)
 }
 
 bilvsblNC <- function(param, data, nq, adapt, grp, weights, nodes, newnodes, newweights, scorevar1, scorevar2, timevar, covariate, REadjust, model, link1, link2, objtrans1, objtrans2, gamma) {

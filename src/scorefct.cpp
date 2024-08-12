@@ -596,7 +596,7 @@ arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector gr
 
 // [[Rcpp::depends("RcppArmadillo")]]
 // [[Rcpp::export]]
-arma::colvec lvsbllin(NumericVector param, List data, NumericVector grp, String scorevar, String timevar, String link, List objtrans, bool loglik){
+arma::colvec lvsbllin(NumericVector param, List data, NumericVector grp, String scorevar, String timevar, String link, List objtrans, bool loglik, bool intercept, String covariate){
   //double lvsbllin(NumericVector param, List data, int nq, NumericVector grp, NumericVector weights, NumericVector nodes, String scorevar, String timevar, String link, List objtrans){
     
   //// extraction des parametres selon les cas (link) et (covariate & REadjust)

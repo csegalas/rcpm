@@ -152,8 +152,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // lvsblNCgen
-arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, NumericVector weights, NumericVector nodes, String scorevar, String timevar, String covariate, String REadjust, String model, String link, List objtrans, double gamma, bool loglik, bool two_means);
-RcppExport SEXP _rcpm_lvsblNCgen(SEXP paramSEXP, SEXP dataSEXP, SEXP nqSEXP, SEXP grpSEXP, SEXP weightsSEXP, SEXP nodesSEXP, SEXP scorevarSEXP, SEXP timevarSEXP, SEXP covariateSEXP, SEXP REadjustSEXP, SEXP modelSEXP, SEXP linkSEXP, SEXP objtransSEXP, SEXP gammaSEXP, SEXP loglikSEXP, SEXP two_meansSEXP) {
+arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, NumericVector weights, NumericVector nodes, String scorevar, String timevar, String covariate, String age_of_diagnosis, String REadjust, String model, String link, List objtrans, double gamma, bool loglik, bool two_means, bool intercept);
+RcppExport SEXP _rcpm_lvsblNCgen(SEXP paramSEXP, SEXP dataSEXP, SEXP nqSEXP, SEXP grpSEXP, SEXP weightsSEXP, SEXP nodesSEXP, SEXP scorevarSEXP, SEXP timevarSEXP, SEXP covariateSEXP, SEXP age_of_diagnosisSEXP, SEXP REadjustSEXP, SEXP modelSEXP, SEXP linkSEXP, SEXP objtransSEXP, SEXP gammaSEXP, SEXP loglikSEXP, SEXP two_meansSEXP, SEXP interceptSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -166,6 +166,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< String >::type scorevar(scorevarSEXP);
     Rcpp::traits::input_parameter< String >::type timevar(timevarSEXP);
     Rcpp::traits::input_parameter< String >::type covariate(covariateSEXP);
+    Rcpp::traits::input_parameter< String >::type age_of_diagnosis(age_of_diagnosisSEXP);
     Rcpp::traits::input_parameter< String >::type REadjust(REadjustSEXP);
     Rcpp::traits::input_parameter< String >::type model(modelSEXP);
     Rcpp::traits::input_parameter< String >::type link(linkSEXP);
@@ -173,13 +174,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type gamma(gammaSEXP);
     Rcpp::traits::input_parameter< bool >::type loglik(loglikSEXP);
     Rcpp::traits::input_parameter< bool >::type two_means(two_meansSEXP);
-    rcpp_result_gen = Rcpp::wrap(lvsblNCgen(param, data, nq, grp, weights, nodes, scorevar, timevar, covariate, REadjust, model, link, objtrans, gamma, loglik, two_means));
+    Rcpp::traits::input_parameter< bool >::type intercept(interceptSEXP);
+    rcpp_result_gen = Rcpp::wrap(lvsblNCgen(param, data, nq, grp, weights, nodes, scorevar, timevar, covariate, age_of_diagnosis, REadjust, model, link, objtrans, gamma, loglik, two_means, intercept));
     return rcpp_result_gen;
 END_RCPP
 }
 // lvsbllin
-arma::colvec lvsbllin(NumericVector param, List data, NumericVector grp, String scorevar, String timevar, String link, List objtrans, bool loglik);
-RcppExport SEXP _rcpm_lvsbllin(SEXP paramSEXP, SEXP dataSEXP, SEXP grpSEXP, SEXP scorevarSEXP, SEXP timevarSEXP, SEXP linkSEXP, SEXP objtransSEXP, SEXP loglikSEXP) {
+arma::colvec lvsbllin(NumericVector param, List data, NumericVector grp, String scorevar, String timevar, String link, List objtrans, bool loglik, bool intercept, String covariate);
+RcppExport SEXP _rcpm_lvsbllin(SEXP paramSEXP, SEXP dataSEXP, SEXP grpSEXP, SEXP scorevarSEXP, SEXP timevarSEXP, SEXP linkSEXP, SEXP objtransSEXP, SEXP loglikSEXP, SEXP interceptSEXP, SEXP covariateSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -191,7 +193,9 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< String >::type link(linkSEXP);
     Rcpp::traits::input_parameter< List >::type objtrans(objtransSEXP);
     Rcpp::traits::input_parameter< bool >::type loglik(loglikSEXP);
-    rcpp_result_gen = Rcpp::wrap(lvsbllin(param, data, grp, scorevar, timevar, link, objtrans, loglik));
+    Rcpp::traits::input_parameter< bool >::type intercept(interceptSEXP);
+    Rcpp::traits::input_parameter< String >::type covariate(covariateSEXP);
+    rcpp_result_gen = Rcpp::wrap(lvsbllin(param, data, grp, scorevar, timevar, link, objtrans, loglik, intercept, covariate));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -506,8 +510,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_rcpm_dmvnrmarma1d", (DL_FUNC) &_rcpm_dmvnrmarma1d, 4},
     {"_rcpm_ScoreInd", (DL_FUNC) &_rcpm_ScoreInd, 15},
     {"_rcpm_transfY", (DL_FUNC) &_rcpm_transfY, 4},
-    {"_rcpm_lvsblNCgen", (DL_FUNC) &_rcpm_lvsblNCgen, 16},
-    {"_rcpm_lvsbllin", (DL_FUNC) &_rcpm_lvsbllin, 8},
+    {"_rcpm_lvsblNCgen", (DL_FUNC) &_rcpm_lvsblNCgen, 18},
+    {"_rcpm_lvsbllin", (DL_FUNC) &_rcpm_lvsbllin, 10},
     {"_rcpm_bilvsblNC", (DL_FUNC) &_rcpm_bilvsblNC, 20},
     {"_rcpm_IndRePostDis", (DL_FUNC) &_rcpm_IndRePostDis, 9},
     {"_rcpm_IndRePostDis2", (DL_FUNC) &_rcpm_IndRePostDis2, 8},
