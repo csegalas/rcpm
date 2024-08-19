@@ -19,7 +19,7 @@
 
 library(marqLevAlg)
 print('succesfully loaded')
-rcpme<- function(longdata, formu, covariate = "NULL", age_of_diagnosis = NULL, REadjust = "no", gamma = 0.1, nbnodes = 10, param = NULL, model = "test", link = "linear", statut = NULL, latent = FALSE, classprob = NULL, two_means = FALSE, intercept = FALSE, membership = NULL, lambda = 0, only_cases = FALSE, maxiter = 500, epsa = 1e-04, nproc = 1, verbose = FALSE) {
+rcpme<- function(longdata, formu, covariate = "NULL", age_of_diagnosis = "NULL", REadjust = "no", gamma = 0.1, nbnodes = 10, param = NULL, model = "test", link = "linear", statut = NULL, latent = FALSE, classprob = NULL, two_means = FALSE, intercept = FALSE, membership = NULL, lambda = 0, only_cases = FALSE, maxiter = 500, epsa = 1e-04, nproc = 1, verbose = FALSE) {
   
   if(!is.null(membership)){
     if((membership <= 0) | (membership >= 1)) stop("membership is not well defined")
@@ -30,7 +30,7 @@ rcpme<- function(longdata, formu, covariate = "NULL", age_of_diagnosis = NULL, R
   if (!is.null(param) & (length(param) != lparam)) stop(paste("Initial parameters vector must be a vector of size ", lparam, ".", sep = ""))
   rk0 = 3 - (model == "isplines")
   rk1 = 4 + (link == "linear") - (model == "isplines")
-  rk2 = rk1 + 7 + (covariate !="NULL")*(3*(REadjust=="no") + 5*(REadjust=="prop") + 11*(REadjust=="yes"))
+  rk2 = rk1 + 7 + (covariate !="NULL")*(4*(REadjust=="no") + 5*(REadjust=="prop") + 11*(REadjust=="yes"))
   lgtclassprob = length(all.vars(classprob))
   
   # =============================================
@@ -86,7 +86,7 @@ rcpme<- function(longdata, formu, covariate = "NULL", age_of_diagnosis = NULL, R
   weights <- ghcoeff$w / sqrt(pi)
   
   if (is.null(param)){
-    if(is.null(age_of_diagnosis)){
+    if(age_of_diagnosis == "NULL"){
       median_time <- median(timevar)
     }
     else {
@@ -99,7 +99,7 @@ rcpme<- function(longdata, formu, covariate = "NULL", age_of_diagnosis = NULL, R
                        na.action = na.omit,
                        method = "ML", control = nlme::lmeControl(opt = "optim"))  
       
-      param <- c(lmm$coefficients$fixed[1:2], -0.5, median_time, nlme::VarCorr(lmm)[c(3,1),2],0,0,1,0,1,1,lmm$coefficients$fixed[3:4],0)
+      param <- c(lmm$coefficients$fixed[1:2], -0.5, median_time, nlme::VarCorr(lmm)[c(3,1),2],0,0,1,0,1,1,lmm$coefficients$fixed[3:4],0,0)
       param <- as.numeric(param)
       print('here: ')
       print(lmm$coefficients$fixed[3:4])
