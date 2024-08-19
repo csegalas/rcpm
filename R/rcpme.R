@@ -26,7 +26,7 @@ rcpme<- function(longdata, formu, covariate = "NULL", age_of_diagnosis = "NULL",
   }
   if (covariate == "NULL" & REadjust != "no") stop("Need a covariate to adjust random effects variance structure.")
   if (REadjust == "prop") stop("It has not been implemented yet. Sorry for the inconvenience...")
-  lparam = 12 +2*(model == "isplines") + 4*(link=="splines") + (covariate != "NULL")*(3*(REadjust=="no")+ 5*(REadjust=="prop")+11*(REadjust=="yes"))+2*(two_means == TRUE) + (latent == TRUE) * (length(all.vars(classprob)) + 1) + 1*(intercept == TRUE)
+  lparam = 12 +2*(model == "isplines") + 4*(link=="splines") + (covariate != "NULL")*(4*(REadjust=="no")+ 5*(REadjust=="prop")+11*(REadjust=="yes"))+2*(two_means == TRUE) + (latent == TRUE) * (length(all.vars(classprob)) + 1) + 1*(intercept == TRUE)
   if (!is.null(param) & (length(param) != lparam)) stop(paste("Initial parameters vector must be a vector of size ", lparam, ".", sep = ""))
   rk0 = 3 - (model == "isplines")
   rk1 = 4 + (link == "linear") - (model == "isplines")
