@@ -3,7 +3,7 @@ tel est,
 d'après ce long discours préliminaire, 
 le caractère fondamental du régime définitif que le positivisme vient inaugurer
 -Auguste Comte"
-lvsblclass_penalized <- function(param, data1, data2, nq, grp, grp2, weights, nodes, scorevar, timevar, covariate, age_of_diagnosis, REadjust, model, link, objtrans, objtrans2, gamma, latent, classprob, two_means, intercept, membership, lambda, only_cases = FALSE){
+lvsblclass_penalized <- function(param, data1, data2, nq, grp, grp2, weights, nodes, scorevar, timevar, covariate, age_of_diagnosis, REadjust, model, link, objtrans, objtrans2, gamma, latent, classprob, two_means, intercept, membership, lambda, only_cases = FALSE, log_normal = F){
   
   rk0 = 3 - (model == "isplines")
   rk1 = 4 + (link == "linear") - (model == "isplines")
@@ -41,7 +41,7 @@ lvsblclass_penalized <- function(param, data1, data2, nq, grp, grp2, weights, no
   }
   
   
-  loglik1 <- sum(lvsblNCgen(param, data2, nq, grp2, weights, nodes, scorevar, timevar, covariate, age_of_diagnosis, REadjust, model, link, objtrans2, gamma, loglik = TRUE, two_means = FALSE, intercept = FALSE))
+  loglik1 <- sum(lvsblNCgen(param, data2, nq, grp2, weights, nodes, scorevar, timevar, covariate, age_of_diagnosis, REadjust, model, link, objtrans2, gamma, loglik = TRUE, two_means = FALSE, log_normal = log_normal, intercept = FALSE))
   
   if(only_cases) {
     out <- loglik1 
@@ -67,7 +67,7 @@ lvsblclass_penalized <- function(param, data1, data2, nq, grp, grp2, weights, no
       else {
         prob <- membership
       }
-      lik3 <- lvsblNCgen(param, data1, nq, grp, weights, nodes, scorevar, timevar, covariate, age_of_diagnosis, REadjust, model, link, objtrans, gamma, loglik = FALSE, two_means = two_means, intercept = intercept)
+      lik3 <- lvsblNCgen(param, data1, nq, grp, weights, nodes, scorevar, timevar, covariate, age_of_diagnosis, REadjust, model, link, objtrans, gamma, loglik = FALSE, two_means = two_means, log_normal = log_normal, intercept = intercept)
       lik4 <- lvsbllin(paramlin, data1, grp, scorevar, timevar, link, objtrans, loglik = FALSE, intercept = intercept, covariate)
       if(is.null(membership)){
         out = loglik1 + sum(log((1-prob)*lik4 + prob*lik3)) - lambda * param[rk4+1] 

@@ -403,7 +403,7 @@ DataFrame gauher(int n) {
 
 // [[Rcpp::depends("RcppArmadillo")]]
 // [[Rcpp::export]]
-arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, NumericVector weights, NumericVector nodes, String scorevar, String timevar, String covariate, String age_of_diagnosis, String REadjust, String model, String link, List objtrans, double gamma, bool loglik, bool two_means, bool intercept){
+arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, NumericVector weights, NumericVector nodes, String scorevar, String timevar, String covariate, String age_of_diagnosis, String REadjust, String model, String link, List objtrans, double gamma, bool loglik, bool two_means, bool log_normal, bool intercept){
   double Beta0=param(0); double Beta1=param(1);
   int rk0 = 2; double Beta2 = param(rk0); 
   if (model == "isplines") {rk0 = 1; Beta2 = -1;}
@@ -421,6 +421,8 @@ arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector gr
   U(0,0) = param(rk1+1); U(0,1) = param(rk1+2); U(0,2) = param(rk1+3); 
   U(1,1) = param(rk1+4); U(1,2) = param(rk1+5); U(2,2) = param(rk1+6);
   B = trans(U) * U; double Utau=param(rk1+7);
+  
+
   
   // link parameters
   int rk2 = rk1 + 7;
@@ -534,27 +536,51 @@ arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector gr
         }
         for (int k = 0; k < nq; ++k){
           
-          if (model == "bw"){Zk.col(1) = timeNoNA - arma::ones<arma::colvec>(lgt)*(tau+Utau*nodes(k));}
-          if ((model == "bw") | (model == "test")) {Zk.col(2) = pow(pow(timeNoNA - arma::ones<arma::colvec>(lgt)*(tau+Utau*nodes(k)),2)+gamma,0.5);}
+          if (model == "bw"){
+            if(log_normal){
+              Zk.col(1) = timeNoNA + arma::ones<arma::colvec>(lgt)*(std::exp(tau+Utau*nodes(k)));
+            } else {
+              Zk.col(1) = timeNoNA - arma::ones<arma::colvec>(lgt)*(tau+Utau*nodes(k));
+            }
+            }
+          if ((model == "bw") | (model == "test")) {
+            if(log_normal){
+              Zk.col(2) = pow(pow(timeNoNA + arma::ones<arma::colvec>(lgt)*(std::exp(tau+Utau*nodes(k))),2)+gamma,0.5);
+              
+            } else {
+              Zk.col(2) = pow(pow(timeNoNA - arma::ones<arma::colvec>(lgt)*(tau+Utau*nodes(k)),2)+gamma,0.5);
+            }
+            }
           if (model == "isplines") {
             arma::mat basespl = arma::zeros<arma::mat>(3,lgt);
             for (int l = 0; l<lgt; l++){
-              basespl.col(l) = ispline(timeNoNA(l) - tau - Utau*nodes(k), 0, 20, 5);
+              if(log_normal){
+                basespl.col(l) = ispline(timeNoNA(l) + exp(tau + Utau*nodes(k)), 0, 20, 5);
+              } else {
+                basespl.col(l) = ispline(timeNoNA(l) - tau - Utau*nodes(k), 0, 20, 5);
+              }
             }
             Zk.col(2) = trans(paramspl * basespl);
           }
           if (model == "linear-linear") {
             arma::colvec basevec = arma::zeros<arma::colvec>(lgt);
             for (int l = 0; l<lgt; l++){
-              basevec(l) = (timeNoNA(l) - tau - Utau*nodes(k))*(1/(1+exp(-gamma*(timeNoNA(l) - tau - Utau*nodes(k)))));
+              if(log_normal){
+                basevec(l) = (timeNoNA(l) + std::exp(tau + Utau*nodes(k)))*(1/(1+exp(-gamma*(timeNoNA(l) + std::exp(tau + Utau*nodes(k))))));
+              } else {
+                basevec(l) = (timeNoNA(l) - tau - Utau*nodes(k))*(1/(1+exp(-gamma*(timeNoNA(l) - tau - Utau*nodes(k)))));
+              }
             }
             Zk.col(2) =  basevec;
           }
           muk = Zk * Betas;
           Vk = (Zk * B) * trans(Zk) + pow(sigma,2) * arma::eye<arma::mat>(lgt,lgt);
           double f = dmvnrmarma1d(trans(tY.col(0)), trans(muk), Vk);
-          res = res + (f * weights(k));
-        }
+          if(log_normal){
+            res = res + (f * weights(k));
+          } else {
+            res = res + (f * weights(k));
+          }
         //out = out + log(res) + sum(log(tY.col(1)));
         if (loglik == TRUE){
           out(i) = log(res) + sum(log(tY.col(1)));
@@ -598,26 +624,57 @@ arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector gr
         }
         for (int k = 0; k < nq; ++k){
           
-          if (model == "bw"){Zk.col(1) = timeNoNA - arma::ones<arma::colvec>(lgt)*(taui+Utau*nodes(k));}
-          if ((model == "bw") | (model == "test")) {Zk.col(2) = pow(pow(timeNoNA - arma::ones<arma::colvec>(lgt)*(taui+Utau*nodes(k)),2)+gamma,0.5);}
+          if (model == "bw"){
+            if(log_normal){
+              Zk.col(1) = timeNoNA + arma::ones<arma::colvec>(lgt)*(std::exp(taui+Utau*nodes(k)));
+            } else {
+              Zk.col(1) = timeNoNA - arma::ones<arma::colvec>(lgt)*(taui+Utau*nodes(k));
+            }
+          }
+          if ((model == "bw") | (model == "test")) {
+            if(log_normal){
+              Zk.col(2) = pow(pow(timeNoNA + arma::ones<arma::colvec>(lgt)*(std::exp(taui+Utau*nodes(k))),2)+gamma,0.5);
+              
+            } else {
+              Zk.col(2) = pow(pow(timeNoNA - arma::ones<arma::colvec>(lgt)*(taui+Utau*nodes(k)),2)+gamma,0.5);
+            }
+          }
           if (model == "isplines") {
             arma::mat basespl = arma::zeros<arma::mat>(3,lgt);
             for (int l = 0; l<lgt; l++){
-              basespl.col(l) = ispline(timeNoNA(l) - taui - Utau*nodes(k), 0, 20, 5);
+              if(log_normal){
+                basespl.col(l) = ispline(timeNoNA(l) + std::exp(taui + Utau*nodes(k)), 0, 20, 5);
+              } else {
+                basespl.col(l) = ispline(timeNoNA(l) - taui - Utau*nodes(k), 0, 20, 5);
+              }
             }
             Zk.col(2) = trans(paramspl * basespl);
           }
           if (model == "linear-linear") {
             arma::colvec basevec = arma::zeros<arma::colvec>(lgt);
             for (int l = 0; l<lgt; l++){
-              basevec(l) = (timeNoNA(l) - taui - Utau*nodes(k))*(1/(1+exp(-gamma*(timeNoNA(l) - taui - Utau*nodes(k)))));
+              if(log_normal){
+                basevec(l) = (timeNoNA(l) + std::exp(taui + Utau*nodes(k)))*(1/(1+exp(-gamma*(timeNoNA(l) + std::exp(taui + Utau*nodes(k))))));
+              } else {
+                basevec(l) = (timeNoNA(l) - taui - Utau*nodes(k))*(1/(1+exp(-gamma*(timeNoNA(l) - taui - Utau*nodes(k)))));
+              }
             }
             Zk.col(2) =  basevec;
           }
           muk = Zk * Betas;
           Vk = (Zk * B) * trans(Zk) + pow(sigma,2) * arma::eye<arma::mat>(lgt,lgt);
           double f = dmvnrmarma1d(trans(tY.col(0)), trans(muk), Vk);
-          res = res + (f * weights(k));
+          
+          
+          
+          
+          
+          if(log_normal){
+            res = res + (f * weights(k));
+          }
+          else{
+            res = res + (f * weights(k));
+          }
         }
         //out = out + log(res) + sum(log(tY.col(1)));
         if (loglik == TRUE){
@@ -626,8 +683,9 @@ arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector gr
         if (loglik == FALSE){
           out(i) = res * prod(tY.col(1));
         }
-      }
     }
+  }
+  }
   }
   return out;
 }

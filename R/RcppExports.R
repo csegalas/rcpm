@@ -37,8 +37,8 @@ transfY <- function(Y, link, param, objtransi) {
     .Call('_rcpm_transfY', PACKAGE = 'rcpm', Y, link, param, objtransi)
 }
 
-lvsblNCgen <- function(param, data, nq, grp, weights, nodes, scorevar, timevar, covariate, age_of_diagnosis, REadjust, model, link, objtrans, gamma, loglik, two_means, intercept) {
-    .Call('_rcpm_lvsblNCgen', PACKAGE = 'rcpm', param, data, nq, grp, weights, nodes, scorevar, timevar, covariate, age_of_diagnosis, REadjust, model, link, objtrans, gamma, loglik, two_means, intercept)
+lvsblNCgen <- function(param, data, nq, grp, weights, nodes, scorevar, timevar, covariate, age_of_diagnosis, REadjust, model, link, objtrans, gamma, loglik, two_means, log_normal, intercept) {
+    .Call('_rcpm_lvsblNCgen', PACKAGE = 'rcpm', param, data, nq, grp, weights, nodes, scorevar, timevar, covariate, age_of_diagnosis, REadjust, model, link, objtrans, gamma, loglik, two_means, log_normal, intercept)
 }
 
 lvsbllin <- function(param, data, grp, scorevar, timevar, link, objtrans, loglik, intercept, covariate) {
