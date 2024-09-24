@@ -39,3 +39,4 @@ lvsblclass <- function(param, data1, data2, nq, grp, grp2, weights, nodes, score
   
   return(out)
 }
+

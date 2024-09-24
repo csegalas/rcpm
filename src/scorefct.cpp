@@ -360,16 +360,55 @@ arma::mat transfY(arma::colvec Y, String link, arma::colvec param, List objtrans
   return(out);
 }
 
+DataFrame gauher(int n) {
+  int m = trunc((n + 1) / 2);
+  NumericVector x(n, -1.0); // Initialize x with -1
+  NumericVector w(n, -1.0); // Initialize w with -1
+  double z, p1, p2, p3, pp, z1;
+  
+  for (int i = 0; i < m; ++i) {
+    if (i == 0) {
+      z = sqrt(2 * n + 1) - 1.85575 * pow(2 * n + 1, -0.16667);
+    } else if (i == 1) {
+      z = z - 1.14 * pow(n, 0.426) / z;
+    } else if (i == 2) {
+      z = 1.86 * z - 0.86 * x[0];
+    } else if (i == 3) {
+      z = 1.91 * z - 0.91 * x[1];
+    } else {
+      z = 2 * z - x[i - 2];
+    }
+    
+    for (int its = 0; its < 10; ++its) {
+      p1 = 0.751125544464943;
+      p2 = 0;
+      for (int j = 1; j <= n; ++j) { // start from j = 1 to avoid division by zero
+        p3 = p2;
+        p2 = p1;
+        p1 = z * sqrt(2.0 / j) * p2 - sqrt((j - 1.0) / j) * p3;
+      }
+      pp = sqrt(2.0 * n) * p2;
+      z1 = z;
+      z = z1 - p1 / pp;
+      if (std::abs(z - z1) <= 3e-14)
+        break;
+    }
+    x[i] = z;
+    x[n - i - 1] = -z;
+    w[i] = 2 / (pp * pp);
+    w[n - i - 1] = w[i];
+  }
+  return DataFrame::create(Named("x") = x, Named("w") = w);
+}
+
 // [[Rcpp::depends("RcppArmadillo")]]
 // [[Rcpp::export]]
-arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, NumericVector weights, NumericVector nodes, String scorevar, String timevar, String covariate, String REadjust, String model, String link, List objtrans, double gamma, bool loglik){
-  
-  //// extraction des parametres selon les cas (link, cov/REadjust, model)
-  // CP trajectory parameters
+arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector grp, NumericVector weights, NumericVector nodes, String scorevar, String timevar, String covariate, String age_of_diagnosis, String REadjust, String model, String link, List objtrans, double gamma, bool loglik, bool two_means, bool log_normal, bool intercept){
   double Beta0=param(0); double Beta1=param(1);
   int rk0 = 2; double Beta2 = param(rk0); 
   if (model == "isplines") {rk0 = 1; Beta2 = -1;}
   double tau=param(rk0+1);
+  double taui = 0;
   arma::colvec Betas = arma::zeros<arma::colvec>(3);
   Betas(0) = Beta0; Betas(1) = Beta1; Betas(2) = Beta2;
   
@@ -383,6 +422,8 @@ arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector gr
   U(1,1) = param(rk1+4); U(1,2) = param(rk1+5); U(2,2) = param(rk1+6);
   B = trans(U) * U; double Utau=param(rk1+7);
   
+
+  
   // link parameters
   int rk2 = rk1 + 7;
   if ((covariate != "NULL") & (REadjust == "no")) {rk2 = rk1 + 11;}
@@ -391,6 +432,8 @@ arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector gr
   arma::colvec paramtrans = arma::zeros<arma::colvec>(5);
   
   int rk3 = rk2; // isplines index
+  rk2 = rk1 + 7;
+  
   if (link == "splines"){
     rk3 = rk2 + 5;
     IntegerVector idx = IntegerVector::create(rk2+1, rk2+2, rk2+3, rk2+4, rk2+5);
@@ -400,12 +443,60 @@ arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector gr
   // ispline model parameters
   arma::rowvec paramspl = arma::ones<arma::rowvec>(3);
   int rk4 = rk3;
+  
   if (model == "isplines"){
     rk4 = rk3 + 3;
     IntegerVector idx = IntegerVector::create(rk3+1, rk3+2, rk3+3);
     paramspl = pow(as<arma::rowvec>(param[idx]),2);
   }
- 
+  if(two_means) {
+    double mu_con = param(rk4+1);
+    tau = mu_con;
+    Utau = param(rk4+2);
+    DataFrame quadrature = gauher(30);
+    double sum1 = sum(as<NumericVector>(quadrature["w"]));
+    //we truncate on the interval 0 and 20 
+    double a = (-20 - tau) / Utau;
+    double b = (-tau) / Utau;
+    IntegerVector indices;
+    NumericVector x = quadrature["x"];
+    for (int i = 0; i < x.size(); i++) {
+      if ((x[i] > a) && (x[i] < b)) {
+        indices.push_back(i);
+      }
+    }
+
+    NumericVector w = quadrature["w"];
+  
+    
+    NumericVector x_subset(indices.size());
+    NumericVector w_subset(indices.size());
+    
+    for (int i = 0; i < indices.size(); i++) {
+      x_subset[i] = x[indices[i]];
+      w_subset[i] = w[indices[i]];
+    }
+    
+    // Recreate the DataFrame with subsetted columns
+    quadrature = DataFrame::create(
+      Named("x") = x_subset,
+      Named("w") = w_subset
+    );
+    nodes = quadrature["x"];
+    weights = quadrature["w"];
+    double sum2 = sum(weights);
+    //readjust the weights 
+    weights = (sum1 / sum2) * weights;
+    rk4 = rk4 + 2; 
+    nq = x_subset.size();
+  }
+  
+  if(intercept){
+    Betas(0) = Betas(0) + param(rk4+1); 
+    rk4 = rk4 + 1;
+  }
+  
+  
   int N = max(grp);
   arma::colvec out = arma::zeros<arma::colvec>(N);
   if (loglik == FALSE){
@@ -419,40 +510,77 @@ arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector gr
     arma::colvec scoreNoNA = as<arma::colvec>(score[indNoNA]);
     
     int lgt = scoreNoNA.n_elem;
-
+    
     if (lgt > 0){
       
       double res = 0;
       if (loglik == FALSE){
         res = 1;
       }
-
+      
       NumericVector time = datai[timevar];
       arma::colvec timeNoNA = as<arma::colvec>(time[indNoNA]);
       List objtransi = as<List>(objtrans[i]);
       arma::mat tY = transfY(scoreNoNA, link, paramtrans, objtransi);
-
+      
       if (covariate == "NULL"){
         // if no covariate
         arma::mat Zk = arma::ones<arma::mat>(lgt,3);
-        if ((model == "test") | (model == "isplines")){Zk.col(1) = timeNoNA;}
+        if ((model == "test") | (model == "isplines") | ( model == "linear-linear")){Zk.col(1) = timeNoNA;}
         arma::colvec muk = arma::zeros<arma::colvec>(lgt);
         arma::mat Vk = arma::zeros<arma::mat>(lgt,lgt);
+        if(age_of_diagnosis != "NULL") {
+          NumericVector age_diag = datai[age_of_diagnosis];
+          arma::colvec age_diagNoNA = as<arma::colvec>(age_diag[indNoNA]);
+          timeNoNA = timeNoNA - age_diagNoNA; 
+        }
         for (int k = 0; k < nq; ++k){
-          if (model == "bw"){Zk.col(1) = timeNoNA - arma::ones<arma::colvec>(lgt)*(tau+Utau*nodes(k));}
-          if ((model == "bw") | (model == "test")) {Zk.col(2) = pow(pow(timeNoNA - arma::ones<arma::colvec>(lgt)*(tau+Utau*nodes(k)),2)+gamma,0.5);}
+          
+          if (model == "bw"){
+            if(log_normal){
+              Zk.col(1) = timeNoNA + arma::ones<arma::colvec>(lgt)*(std::exp(tau+Utau*nodes(k)));
+            } else {
+              Zk.col(1) = timeNoNA - arma::ones<arma::colvec>(lgt)*(tau+Utau*nodes(k));
+            }
+            }
+          if ((model == "bw") | (model == "test")) {
+            if(log_normal){
+              Zk.col(2) = pow(pow(timeNoNA + arma::ones<arma::colvec>(lgt)*(std::exp(tau+Utau*nodes(k))),2)+gamma,0.5);
+              
+            } else {
+              Zk.col(2) = pow(pow(timeNoNA - arma::ones<arma::colvec>(lgt)*(tau+Utau*nodes(k)),2)+gamma,0.5);
+            }
+            }
           if (model == "isplines") {
             arma::mat basespl = arma::zeros<arma::mat>(3,lgt);
             for (int l = 0; l<lgt; l++){
-              basespl.col(l) = ispline(timeNoNA(l) - tau - Utau*nodes(k), 0, 20, 5);
+              if(log_normal){
+                basespl.col(l) = ispline(timeNoNA(l) + exp(tau + Utau*nodes(k)), 0, 20, 5);
+              } else {
+                basespl.col(l) = ispline(timeNoNA(l) - tau - Utau*nodes(k), 0, 20, 5);
+              }
             }
             Zk.col(2) = trans(paramspl * basespl);
+          }
+          if (model == "linear-linear") {
+            arma::colvec basevec = arma::zeros<arma::colvec>(lgt);
+            for (int l = 0; l<lgt; l++){
+              if(log_normal){
+                basevec(l) = (timeNoNA(l) + std::exp(tau + Utau*nodes(k)))*(1/(1+exp(-gamma*(timeNoNA(l) + std::exp(tau + Utau*nodes(k))))));
+              } else {
+                basevec(l) = (timeNoNA(l) - tau - Utau*nodes(k))*(1/(1+exp(-gamma*(timeNoNA(l) - tau - Utau*nodes(k)))));
+              }
             }
+            Zk.col(2) =  basevec;
+          }
           muk = Zk * Betas;
           Vk = (Zk * B) * trans(Zk) + pow(sigma,2) * arma::eye<arma::mat>(lgt,lgt);
           double f = dmvnrmarma1d(trans(tY.col(0)), trans(muk), Vk);
-          res = res + (f * weights(k));
-        }
+          if(log_normal){
+            res = res + (f * weights(k));
+          } else {
+            res = res + (f * weights(k));
+          }
         //out = out + log(res) + sum(log(tY.col(1)));
         if (loglik == TRUE){
           out(i) = log(res) + sum(log(tY.col(1)));
@@ -460,39 +588,93 @@ arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector gr
         if (loglik == FALSE){
           out(i) = res * prod(tY.col(1));
         }
-
+        
       }
-
+      
       if (covariate != "NULL"){
         // if covariate : need to take it into account
         NumericVector adjust = datai[covariate]; double adjusti = adjust(0);
-        Betas(0) = Beta0 + param(rk1+8)*adjusti; Betas(1) = Beta1 + param(rk1+9)*adjusti; Betas(2)=Beta2+param(rk1+10)*adjusti;
-
-
+        Betas(0) = Beta0 + param(rk2+1)*adjusti; Betas(1) = Beta1 + param(rk2+2)*adjusti; 
+        Betas(2)= Beta2+param(rk2+3)*adjusti; 
+        taui = tau + param(rk2+4)*adjusti;
+        
+        
         if (REadjust == "prop"){
           U(0,0) = (1 + param(rk1+12)*adjusti) * param(rk1+1); U(0,1) = (1 + param(rk1+12)*adjusti) * param(rk1+2); U(0,2)=(1 + param(rk1+12)*adjusti) * param(rk1+3);
           U(1,1)=(1 + param(rk1+12)*adjusti) * param(rk1+4); U(1,2)=(1 + param(rk1+12)*adjusti) * param(rk1+5); U(2,2)=(1 + param(rk1+12)*adjusti) * param(rk1+6);
           B = trans(U) * U;
           Utau = (1 + param(rk1+12)*adjusti) * param(rk1+7);
         }
-
+        
         if (REadjust == "yes"){
           U(0,0) = param(rk1+1)+param(rk1+12)*adjusti; U(0,1) = param(rk1+2)+param(rk1+13)*adjusti; U(0,2)=param(rk1+3)+param(rk1+14)*adjusti;
           U(1,1)=param(rk1+4)+param(rk1+15)*adjusti; U(1,2)=param(rk1+5)+param(rk1+16)*adjusti; U(2,2)=param(rk1+6)+param(rk1+17)*adjusti;
           B = trans(U) * U;
           Utau = param(rk1+7) + param(rk1+18)*adjusti;
         }
-
+        
         arma::mat Zk = arma::ones<arma::mat>(lgt,3);
-        if (model == "test") {Zk.col(1) = timeNoNA;}
+        if ((model == "test")| (model == "isplines") | ( model == "linear-linear")) {Zk.col(1) = timeNoNA;}
         arma::colvec muk = arma::zeros<arma::colvec>(lgt);
         arma::mat Vk = arma::zeros<arma::mat>(lgt,lgt);
+        if(age_of_diagnosis != "NULL") {
+          NumericVector age_diag = datai[age_of_diagnosis];
+          arma::colvec age_diagNoNA = as<arma::colvec>(age_diag[indNoNA]);
+          timeNoNA = timeNoNA - age_diagNoNA; 
+        }
         for (int k = 0; k < nq; ++k){
-          if (model == "bw") {Zk.col(1) = timeNoNA - arma::ones<arma::colvec>(lgt)*(tau+param(rk1+11)*adjusti+Utau*nodes(k));}
-          Zk.col(2) = pow(pow(timeNoNA - arma::ones<arma::colvec>(lgt)*(tau+param(rk1+11)*adjusti+Utau*nodes(k)),2)+gamma,0.5);
-          muk = Zk * Betas;  Vk = (Zk * B) * trans(Zk) + pow(sigma,2) * arma::eye<arma::mat>(lgt,lgt);
+          
+          if (model == "bw"){
+            if(log_normal){
+              Zk.col(1) = timeNoNA + arma::ones<arma::colvec>(lgt)*(std::exp(taui+Utau*nodes(k)));
+            } else {
+              Zk.col(1) = timeNoNA - arma::ones<arma::colvec>(lgt)*(taui+Utau*nodes(k));
+            }
+          }
+          if ((model == "bw") | (model == "test")) {
+            if(log_normal){
+              Zk.col(2) = pow(pow(timeNoNA + arma::ones<arma::colvec>(lgt)*(std::exp(taui+Utau*nodes(k))),2)+gamma,0.5);
+              
+            } else {
+              Zk.col(2) = pow(pow(timeNoNA - arma::ones<arma::colvec>(lgt)*(taui+Utau*nodes(k)),2)+gamma,0.5);
+            }
+          }
+          if (model == "isplines") {
+            arma::mat basespl = arma::zeros<arma::mat>(3,lgt);
+            for (int l = 0; l<lgt; l++){
+              if(log_normal){
+                basespl.col(l) = ispline(timeNoNA(l) + std::exp(taui + Utau*nodes(k)), 0, 20, 5);
+              } else {
+                basespl.col(l) = ispline(timeNoNA(l) - taui - Utau*nodes(k), 0, 20, 5);
+              }
+            }
+            Zk.col(2) = trans(paramspl * basespl);
+          }
+          if (model == "linear-linear") {
+            arma::colvec basevec = arma::zeros<arma::colvec>(lgt);
+            for (int l = 0; l<lgt; l++){
+              if(log_normal){
+                basevec(l) = (timeNoNA(l) + std::exp(taui + Utau*nodes(k)))*(1/(1+exp(-gamma*(timeNoNA(l) + std::exp(taui + Utau*nodes(k))))));
+              } else {
+                basevec(l) = (timeNoNA(l) - taui - Utau*nodes(k))*(1/(1+exp(-gamma*(timeNoNA(l) - taui - Utau*nodes(k)))));
+              }
+            }
+            Zk.col(2) =  basevec;
+          }
+          muk = Zk * Betas;
+          Vk = (Zk * B) * trans(Zk) + pow(sigma,2) * arma::eye<arma::mat>(lgt,lgt);
           double f = dmvnrmarma1d(trans(tY.col(0)), trans(muk), Vk);
-          res = res + (f * weights(k));
+          
+          
+          
+          
+          
+          if(log_normal){
+            res = res + (f * weights(k));
+          }
+          else{
+            res = res + (f * weights(k));
+          }
         }
         //out = out + log(res) + sum(log(tY.col(1)));
         if (loglik == TRUE){
@@ -501,8 +683,9 @@ arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector gr
         if (loglik == FALSE){
           out(i) = res * prod(tY.col(1));
         }
-      }
     }
+  }
+  }
   }
   return out;
 }
@@ -510,7 +693,7 @@ arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector gr
 
 // [[Rcpp::depends("RcppArmadillo")]]
 // [[Rcpp::export]]
-arma::colvec lvsbllin(NumericVector param, List data, NumericVector grp, String scorevar, String timevar, String link, List objtrans, bool loglik){
+arma::colvec lvsbllin(NumericVector param, List data, NumericVector grp, String scorevar, String timevar, String link, List objtrans, bool loglik, bool intercept, String covariate){
   //double lvsbllin(NumericVector param, List data, int nq, NumericVector grp, NumericVector weights, NumericVector nodes, String scorevar, String timevar, String link, List objtrans){
     
   //// extraction des parametres selon les cas (link) et (covariate & REadjust)
@@ -534,6 +717,11 @@ arma::colvec lvsbllin(NumericVector param, List data, NumericVector grp, String 
     IntegerVector idx = IntegerVector::create(rk2+1, rk2+2, rk2+3, rk2+4, rk2+5);
     paramtrans = pow(as<arma::rowvec>(param[idx]),2);
   }
+  if(intercept){
+    Betas(0) = Betas(0) + param(rk2+1);
+    rk2 = rk2 + 1;
+  }
+  
   
   int N = max(grp);
   arma::colvec out = arma::zeros<arma::colvec>(N);
@@ -546,6 +734,12 @@ arma::colvec lvsbllin(NumericVector param, List data, NumericVector grp, String 
     NumericVector score = datai[scorevar];
     LogicalVector indNoNA = !is_na(score);
     arma::colvec scoreNoNA = as<arma::colvec>(score[indNoNA]);
+    
+    if (covariate != "NULL"){
+      // if covariate : need to take it into account
+      NumericVector adjust = datai[covariate]; double adjusti = adjust(0);
+      Betas(0) = Beta0 + param(rk2+1)*adjusti; Betas(1) = Beta1 + param(rk2+2)*adjusti;
+    }
     
     int lgt = scoreNoNA.n_elem;
     
