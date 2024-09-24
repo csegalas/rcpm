@@ -12,6 +12,7 @@ REestimate <- function(rcpmeObj, longdata, var = FALSE, onlytau = FALSE){
   formu <- rcpmeObj$formula
   model <- rcpmeObj$model
   statutvar <- rcpmeObj$statut
+  age_diagnosis <- rcpmeObj$call$age_of_diagnosis
   if (is.null(model)){model <- "test"} # pour les vieilles sorties sans "model"
   gamma <- rcpmeObj$gamma
   if (is.null(gamma)){gamma <- 0.1} # pour les vieilles sorties sans "gamma"
@@ -31,15 +32,143 @@ REestimate <- function(rcpmeObj, longdata, var = FALSE, onlytau = FALSE){
       longdata[,scorevar][!is.na(longdata[,scorevar])] <- isOut %*% rcpmeObj$optpar[12:16]**2
     }   
     
-    if (onlytau == FALSE){
-      re <- rep(0,4)
-      if (var == FALSE) {return(lapply(split(longdata,longdata[,groupvar]), function(x){if(sum(!is.na(x[,scorevar])!=0)) {opt<-marqLevAlg(b = re, fn = IndRePostDis, minimize = FALSE, rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, timevar = timevar, model = model, statutvar = statutvar, gamma = gamma, link = link); if(opt$istop == 1) {return("par"=opt$b);} else {return("par"=re);}} else {return("par"=re);}}))}
-      if (var == TRUE) {return(lapply(split(longdata,longdata[,groupvar]),function(x){if(sum(!is.na(x[,scorevar])!=0)) {opt<-marqLevAlg(b = re, fn = IndRePostDis, minimize = FALSE, rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, timevar = timevar, model = model, statutvar = statutvar, gamma = gamma, link = link);if(opt$istop == 1) {return(list("par"=opt$b,"var"=matrix(c(opt$v[c(1,2,4,7,2,3,5,8,4,5,6,9,7,8,9,10)]), nrow = 4, byrow=TRUE)));} else {return(list("par"=re, "var"=diag(4)))}} else {return(list("par"=re, "var"=diag(4)))}}))}
+    if (onlytau == FALSE) {
+      re <- rep(0, 4)  # Starting point for the full model (all 4 parameters)
+      
+      if (var == FALSE) {
+        return(lapply(split(longdata, longdata[, groupvar]), function(x) {
+          if (sum(!is.na(x[, scorevar])) != 0) {
+            if (all(x[, statutvar] != 1)) {
+              re_short <- rep(0, 2)
+              opt <- marqLevAlg(b = re_short, fn = IndRePostDis, minimize = FALSE, 
+                                rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, 
+                                timevar = timevar, model = model, statutvar = statutvar, 
+                                gamma = gamma, link = link, age_of_diagnosis = age_diagnosis)
+              if (opt$istop == 1) {
+                # Return the first two parameters
+                return("par" = c(opt$b, rep(0, 2), 0))  # Pad with 0s for consistency
+              } else {
+                return("par" = c(re_short, rep(0, 2), 0))
+              }
+            } else {
+              # Optimize over all 4 variables (parameters)
+              opt <- marqLevAlg(b = re, fn = IndRePostDis, minimize = FALSE, 
+                                rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, 
+                                timevar = timevar, model = model, statutvar = statutvar, 
+                                gamma = gamma, link = link, age_of_diagnosis = age_diagnosis)
+              if (opt$istop == 1) {
+                return("par" =  c(opt$b, 1))
+              } else {
+                return("par" = c(opt$b, 1))
+              }
+            }
+          } else {
+            return("par" =  c(re, 1))
+          }
+        }))
+      }
+      
+      if (var == TRUE) {
+        return(lapply(split(longdata, longdata[, groupvar]), function(x) {
+          if (sum(!is.na(x[, scorevar])) != 0) {
+            # Check if any statutvar == 1 in the group
+            if (all(x[, statutvar] != 1)) {
+              # Optimize only over the first two variables (parameters)
+              re_short <- rep(0, 2)
+              opt <- marqLevAlg(b = re_short, fn = IndRePostDis, minimize = FALSE, 
+                                rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, 
+                                timevar = timevar, model = model, statutvar = statutvar, 
+                                gamma = gamma, link = link, age_of_diagnosis = age_diagnosis)
+              if (opt$istop == 1) {
+                # Return the first two parameters and a 2x2 variance-covariance matrix
+                return(list("par" = c(opt$b, rep(0, 2)), "var" = diag(c(opt$v[1], opt$v[2], 0, 0), 4)))
+              } else {
+                return(list("par" = c(re_short, rep(0, 2)), "var" = diag(4)))
+              }
+            } else {
+              # Optimize over all 4 variables (parameters)
+              opt <- marqLevAlg(b = re, fn = IndRePostDis, minimize = FALSE, 
+                                rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, 
+                                timevar = timevar, model = model, statutvar = statutvar, 
+                                gamma = gamma, link = link, age_of_diagnosis = age_diagnosis)
+              if (opt$istop == 1) {
+                return(list("par" = opt$b, 
+                            "var" = matrix(c(opt$v[c(1, 2, 4, 7, 2, 3, 5, 8, 4, 5, 6, 9, 7, 8, 9, 10)]), 
+                                           nrow = 4, byrow = TRUE)))
+              } else {
+                return(list("par" = re, "var" = diag(4)))
+              }
+            }
+          } else {
+            return(list("par" = re, "var" = diag(4)))
+          }
+        }))
+      }
+      
     } else {
-      re <- 0
-      if (var == FALSE) {return(lapply(split(longdata,longdata[,groupvar]),function(x){if(sum(!is.na(x[,scorevar])!=0)) {opt<-marqLevAlg(b = re, fn = IndRePostDis2, minimize = FALSE, rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, timevar = timevar, model = model, gamma = gamma, link = link);if(opt$istop ==1) {return("par"=opt$b);} else {return("par"=re);}} else {return("par"=re);}}))}
-      if (var == TRUE) {return(lapply(split(longdata,longdata[,groupvar]),function(x){if(sum(!is.na(x[,scorevar])!=0)) {opt<-marqLevAlg(b = re, fn = IndRePostDis2, minimize = FALSE, rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, timevar = timevar, model = model, gamma = gamma, link = link);if(opt$istop == 1) {return(list("par"=opt$b,"var"=opt$v));} else {return(list("par"=0, "var"=1))};} else {return(list("par"=0, "var"=1))}}))}
+      re <- 0  # Scalar starting point for "onlytau == TRUE"
+      
+      if (var == FALSE) {
+        return(lapply(split(longdata, longdata[, groupvar]), function(x) {
+          if (sum(!is.na(x[, scorevar])) != 0) {
+            if (all(x[, statutvar] != 1)) {
+              # Optimize over the first variable only
+              opt <- marqLevAlg(b = re, fn = IndRePostDis2, minimize = FALSE, 
+                                rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, 
+                                timevar = timevar, model = model, gamma = gamma, link = link, age_of_diagnosis = age_diagnosis)
+              if (opt$istop == 1) {
+                return("par" = opt$b)
+              } else {
+                return("par" = re)
+              }
+            } else {
+              # Optimize over the full model
+              opt <- marqLevAlg(b = re, fn = IndRePostDis2, minimize = FALSE, 
+                                rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, 
+                                timevar = timevar, model = model, gamma = gamma, link = link, age_of_diagnosis = age_diagnosis)
+              if (opt$istop == 1) {
+                return("par" = opt$b)
+              } else {
+                return("par" = re)
+              }
+            }
+          } else {
+            return("par" = re)
+          }
+        }))
+      }
+      
+      if (var == TRUE) {
+        return(lapply(split(longdata, longdata[, groupvar]), function(x) {
+          if (sum(!is.na(x[, scorevar])) != 0) {
+            if (all(x[, statutvar] != 1)) {
+              # Optimize over the first variable only
+              opt <- marqLevAlg(b = re, fn = IndRePostDis2, minimize = FALSE, 
+                                rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, 
+                                timevar = timevar, model = model, gamma = gamma, link = link, age_of_diagnosis = age_diagnosis)
+              if (opt$istop == 1) {
+                return(list("par" = opt$b, "var" = opt$v))
+              } else {
+                return(list("par" = 0, "var" = 1))
+              }
+            } else {
+              # Optimize over the full model
+              opt <- marqLevAlg(b = re, fn = IndRePostDis2, minimize = FALSE, 
+                                rcpmeObj = rcpmeObj, data = x, scorevar = scorevar, 
+                                timevar = timevar, model = model, gamma = gamma, link = link, age_of_diagnosis = age_diagnosis)
+              if (opt$istop == 1) {
+                return(list("par" = opt$b, "var" = opt$v))
+              } else {
+                return(list("par" = 0, "var" = 1))
+              }
+            }
+          } else {
+            return(list("par" = 0, "var" = 1))
+          }
+        }))
+      }
     }
+    
   }
   
   if (length(varsformu) == 4){ # if bivariate

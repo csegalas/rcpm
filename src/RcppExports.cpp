@@ -231,8 +231,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // IndRePostDis
-double IndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String scorevar, String timevar, String model, String statutvar, double gamma, String link);
-RcppExport SEXP _rcpm_IndRePostDis(SEXP reSEXP, SEXP dataSEXP, SEXP rcpmeObjSEXP, SEXP scorevarSEXP, SEXP timevarSEXP, SEXP modelSEXP, SEXP statutvarSEXP, SEXP gammaSEXP, SEXP linkSEXP) {
+double IndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String scorevar, String timevar, String model, String statutvar, double gamma, String link, String age_of_diagnosis);
+RcppExport SEXP _rcpm_IndRePostDis(SEXP reSEXP, SEXP dataSEXP, SEXP rcpmeObjSEXP, SEXP scorevarSEXP, SEXP timevarSEXP, SEXP modelSEXP, SEXP statutvarSEXP, SEXP gammaSEXP, SEXP linkSEXP, SEXP age_of_diagnosisSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -245,7 +245,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< String >::type statutvar(statutvarSEXP);
     Rcpp::traits::input_parameter< double >::type gamma(gammaSEXP);
     Rcpp::traits::input_parameter< String >::type link(linkSEXP);
-    rcpp_result_gen = Rcpp::wrap(IndRePostDis(re, data, rcpmeObj, scorevar, timevar, model, statutvar, gamma, link));
+    Rcpp::traits::input_parameter< String >::type age_of_diagnosis(age_of_diagnosisSEXP);
+    rcpp_result_gen = Rcpp::wrap(IndRePostDis(re, data, rcpmeObj, scorevar, timevar, model, statutvar, gamma, link, age_of_diagnosis));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -514,7 +515,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_rcpm_lvsblNCgen", (DL_FUNC) &_rcpm_lvsblNCgen, 19},
     {"_rcpm_lvsbllin", (DL_FUNC) &_rcpm_lvsbllin, 10},
     {"_rcpm_bilvsblNC", (DL_FUNC) &_rcpm_bilvsblNC, 20},
-    {"_rcpm_IndRePostDis", (DL_FUNC) &_rcpm_IndRePostDis, 9},
+    {"_rcpm_IndRePostDis", (DL_FUNC) &_rcpm_IndRePostDis, 10},
     {"_rcpm_IndRePostDis2", (DL_FUNC) &_rcpm_IndRePostDis2, 8},
     {"_rcpm_BivIndRePostDis", (DL_FUNC) &_rcpm_BivIndRePostDis, 10},
     {"_rcpm_BivIndRePostDis2", (DL_FUNC) &_rcpm_BivIndRePostDis2, 10},

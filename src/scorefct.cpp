@@ -590,6 +590,7 @@ arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector gr
         }
         
       }
+      }
       
       if (covariate != "NULL"){
         // if covariate : need to take it into account
@@ -665,10 +666,6 @@ arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector gr
           Vk = (Zk * B) * trans(Zk) + pow(sigma,2) * arma::eye<arma::mat>(lgt,lgt);
           double f = dmvnrmarma1d(trans(tY.col(0)), trans(muk), Vk);
           
-          
-          
-          
-          
           if(log_normal){
             res = res + (f * weights(k));
           }
@@ -684,7 +681,7 @@ arma::colvec lvsblNCgen(NumericVector param, List data, int nq, NumericVector gr
           out(i) = res * prod(tY.col(1));
         }
     }
-  }
+  
   }
   }
   return out;
@@ -948,10 +945,14 @@ double bilvsblNC(NumericVector param, List data, int nq, bool adapt, NumericVect
 
 // [[Rcpp::depends("RcppArmadillo")]]
 // [[Rcpp::export]]
-double IndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String scorevar, String timevar, String model, String statutvar, double gamma, String link){
+double IndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String scorevar, String timevar, String model, String statutvar, double gamma, String link, String age_of_diagnosis){
   
   NumericVector scoreAll = data[scorevar];
   NumericVector timeAll = data[timevar];
+  NumericVector age_of_diag;
+  if(age_of_diagnosis != "NULL") {
+    age_of_diag = data[age_of_diagnosis];
+  }
   LogicalVector indNoNA = !is_na(scoreAll);
   arma::colvec score = as<arma::colvec>(scoreAll[indNoNA]);
   arma::colvec time = as<arma::colvec>(timeAll[indNoNA]);
@@ -985,13 +986,19 @@ double IndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String score
         mus(i) = par(0) + re(0) + (par(1) + re(1)) * (time(i) - par(3) - re(3)) + (par(2)+re(2)) * pow(pow(time(i) - par(3) - re(3),2)+gamma,0.5);
       }
       if (model == "isplines"){
-        int lpar = par.length();
-        IntegerVector idx_spl = IntegerVector::create(lpar-3,lpar-2,lpar-1);
-        NumericVector parisplines = par[idx_spl];
-        arma::colvec isplbasis = ispline(time(i) - par(2) - re(3), 0, 20, 5);
-        mus(i) = par(0) + re(0) + (par(1) + re(1)) * time(i) + statut * (-1 + re(2)) * 
-          (parisplines(0) * isplbasis(0) + parisplines(1) * isplbasis(1) + parisplines(2) * isplbasis(2));
-        // Rcpp::Rcout << "Value of mus(i) is: " << mus(i) << std::endl;
+        if(statut == 0) {
+          mus(i) = par(0) + re(0) + (par(1) + re(1)) * time(i);
+        }
+        else {
+          int lpar = par.length();
+          IntegerVector idx_spl = IntegerVector::create(lpar-3,lpar-2,lpar-1);
+          NumericVector parisplines = par[idx_spl];
+          if(age_of_diagnosis == "NULL"){
+            arma::colvec isplbasis = ispline(time(i) - par(2) - re(3), 0, 20, 5);
+          } else {
+            arma::colvec isplbasis = ispline((time(i) - age_of_diag(i)) - par(2) - re(3), 0, 20, 5);
+          }
+          }
       }
     }
   }
@@ -1019,15 +1026,26 @@ double IndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String score
   String REadjust = as<String>(rcpmeObj[8]);
 
   if ((REadjust == "no") | (covariate == "NULL")){
-    estiVarEA = as<arma::mat>(rcpmeObj[5]);
+    if(statut == 0) {
+      estiVarEA = as<arma::mat>(rcpmeObj[5]);
+      estiVarEA =  estiVarEA.submat(0, 0, 1, 1);
+      
+    } else {
+      estiVarEA = as<arma::mat>(rcpmeObj[5]);
+    }
+    
   }
 
   if (REadjust == "yes"){ // CAUTION only fit for 0/1 covariate
     List estiVarEAs = as<List>(rcpmeObj[5]);
     estiVarEA = as<arma::mat>(estiVarEAs[adjusti]);
   }
-
-  arma::rowvec mure = arma::zeros<arma::rowvec>(4);
+  arma::rowvec mure;
+  if(statut == 0){
+    mure = arma::zeros<arma::rowvec>(2);
+  } else {
+    mure = arma::zeros<arma::rowvec>(4);
+  }
   bool logtrue = true;
   double out = dmvnrmarma1d(re,mure,estiVarEA,logtrue);
   for (int i = 0; i<lgt; i++){
