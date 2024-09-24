@@ -982,10 +982,10 @@ double IndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String score
       if (model == "test"){
         mus(i) = par(0) + re(0) + (par(1) + re(1)) * time(i) + (par(2)+re(2)) * pow(pow(time(i) - par(3) - re(3),2)+gamma,0.5);
       }
-      if (model == "bw"){
+      else if (model == "bw"){
         mus(i) = par(0) + re(0) + (par(1) + re(1)) * (time(i) - par(3) - re(3)) + (par(2)+re(2)) * pow(pow(time(i) - par(3) - re(3),2)+gamma,0.5);
       }
-      if (model == "isplines"){
+      else if (model == "isplines"){
         if(statut == 0) {
           mus(i) = par(0) + re(0) + (par(1) + re(1)) * time(i);
         }
@@ -993,13 +993,33 @@ double IndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String score
           int lpar = par.length();
           IntegerVector idx_spl = IntegerVector::create(lpar-3,lpar-2,lpar-1);
           NumericVector parisplines = par[idx_spl];
+          arma::colvec isplbasis;
           if(age_of_diagnosis == "NULL"){
-            arma::colvec isplbasis = ispline(time(i) - par(2) - re(3), 0, 20, 5);
+            isplbasis = ispline(time(i) - par(2) - re(3), 0, 20, 5);
           } else {
-            arma::colvec isplbasis = ispline((time(i) - age_of_diag(i)) - par(2) - re(3), 0, 20, 5);
+            isplbasis = ispline((time(i) - age_of_diag(i)) - par(2) - re(3), 0, 20, 5);
           }
+          mus(i) = par(0) + re(0) + (par(1) + re(1)) * time(i) + (-1 + re(2)) *  (parisplines(0) * isplbasis(0) + parisplines(1) * isplbasis(1) + parisplines(2) * isplbasis(2));
           }
       }
+      else if(model == "linear-linear"){
+        if(statut == 0) {
+          mus(i) = par(0) + re(0) + (par(1) + re(1)) * time(i);
+        }
+        else {
+          double linear;
+          if(age_of_diagnosis == "NULL"){
+            linear = (time(i) - par(2) - re(3))*(1/(1+exp(-gamma*(time(i) - par(2) - re(3)))));
+          } else {
+            linear = (time(i) - age_of_diag(i) - par(2) - re(3))*(1/(1+exp(-gamma*(time(i) - age_of_diag(i) - par(2) - re(3)))));
+            
+          }
+          mus(i) = par(0) + re(0) + (par(1) + re(1)) * time(i) + (par(2) + re(2)) * linear;
+          
+        }
+      }
+      
+      
     }
   }
 
@@ -1029,7 +1049,6 @@ double IndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String score
     if(statut == 0) {
       estiVarEA = as<arma::mat>(rcpmeObj[5]);
       estiVarEA =  estiVarEA.submat(0, 0, 1, 1);
-      
     } else {
       estiVarEA = as<arma::mat>(rcpmeObj[5]);
     }
