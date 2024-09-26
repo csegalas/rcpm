@@ -1027,7 +1027,8 @@ double IndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String score
   double adjusti;
   if (covariate != "NULL"){
     NumericVector par = as<NumericVector>(rcpmeObj[6]);
-    int rk1 = 3 + (link == "linear"); 
+    int rk1;
+    rk1 = 3 + (link == "linear") - (model == "isplines"); 
     IntegerVector idx = IntegerVector::create(0, rk1+8, 1, rk1+9, 2, rk1+10, 3, rk1+11);
     NumericVector betas = par[idx];
     adjust = data[covariate];
@@ -1036,9 +1037,42 @@ double IndRePostDis(arma::rowvec re, DataFrame data, List rcpmeObj, String score
       if (model == "test"){
         mus(i) = betas(0) + betas(1)*adjusti + re(0) + (betas(2) + betas(3)*adjusti + re(1)) * time(i) + (betas(4) + betas(5)*adjusti + re(2)) * pow(pow(time(i) - betas(6) - betas(7)*adjusti - re(3),2)+gamma,0.5);
       }
-      if (model == "bw"){
+      else if (model == "bw"){
         mus(i) = betas(0) + betas(1)*adjusti + re(0) + (betas(2) + betas(3)*adjusti + re(1)) * (time(i) - betas(6) - betas(7)*adjusti - re(3)) + (betas(4) + betas(5)*adjusti + re(2)) * pow(pow(time(i) - betas(6) - betas(7)*adjusti - re(3),2)+gamma,0.5);
       }
+      else if(model == "isplines"){
+        if(statut == 0) {
+          mus(i) = betas(0) + betas(1)*adjusti + re(0) + (betas(2)+ betas(3)*adjusti + re(1)) * time(i);
+        }
+        else {
+          int lpar = par.length(); 
+          IntegerVector idx_spl = IntegerVector::create(lpar-3,lpar-2,lpar-1);
+          NumericVector parisplines = par[idx_spl];
+          arma::colvec isplbasis;
+          if(age_of_diagnosis == "NULL"){
+            isplbasis = ispline(time(i) - betas(4) - betas(7)*adjusti - re(3), 0, 20, 5);
+          } else {
+            isplbasis = ispline((time(i) - age_of_diag(i)) - betas(4) - betas(7)*adjusti - re(3), 0, 20, 5);
+          }
+          mus(i) = betas(0) + betas(1)*adjusti + re(0) + (betas(2) + betas(3)*adjusti + re(1)) * time(i) + (-1 + re(2)+ betas(5)*adjusti) *  (parisplines(0) * isplbasis(0) + parisplines(1) * isplbasis(1) + parisplines(2) * isplbasis(2));
+        }
+      }
+      else if(model == "linear-linear") {
+        if(statut == 0) {
+          mus(i) = betas(0) + betas(1)*adjusti + re(0) + (betas(2) + betas(3)*adjusti + re(1)) * time(i);
+        }
+        else {
+          double linear;
+          if(age_of_diagnosis == "NULL"){
+            linear = (time(i) - betas(6) - betas(7)*adjusti - re(3))*(1/(1+exp(-gamma*(time(i) - betas(6) - betas(7)*adjusti - re(3)))));
+          } else {
+            linear = (time(i) - age_of_diag(i) - betas(6) - betas(7)*adjusti - re(3))*(1/(1+exp(-gamma*(time(i) - age_of_diag(i) - betas(6) - betas(7)*adjusti - re(3)))));
+            
+          }
+          mus(i) = betas(0) + betas(1)*adjusti + re(0) + (betas(2) + betas(3)*adjusti + re(1)) * time(i) + (betas(4) + re(2)+ betas(5)*adjusti) * linear;
+        }
+      }
+      
     }
   }
 
